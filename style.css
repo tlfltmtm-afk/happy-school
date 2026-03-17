@@ -607,3 +607,24 @@ tr:hover {
     font-size: 0.85rem;
     color: var(--text-muted);
 }
+
+/* Custom Tooltip */
+.mbti-custom-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.2s;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    max-width: 200px;
+    line-height: 1.5;
+    text-align: center;
+}
+.mbti-custom-tooltip.show {
+    opacity: 1;
+}

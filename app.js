@@ -337,8 +337,8 @@ function updateClassCharts() {
         <div class="mbti-row">
             <span class="mbti-label">${left}</span>
             <div class="mbti-bar-wrapper">
-                <div class="mbti-segment left-side" style="width: ${lPct}%" title="${lTitle}">${lCount}명 (${lPct}%)</div>
-                <div class="mbti-segment right-side" style="width: ${rPct}%" title="${rTitle}">${rCount}명 (${rPct}%)</div>
+                <div class="mbti-segment left-side" style="width: ${lPct}%" data-tooltip="${lTitle}" onmouseenter="showMbtiTooltip(event)" onmouseleave="hideMbtiTooltip()">${lCount}명 (${lPct}%)</div>
+                <div class="mbti-segment right-side" style="width: ${rPct}%" data-tooltip="${rTitle}" onmouseenter="showMbtiTooltip(event)" onmouseleave="hideMbtiTooltip()">${rCount}명 (${rPct}%)</div>
             </div>
             <span class="mbti-label">${right}</span>
         </div>`;
@@ -350,7 +350,9 @@ function updateClassCharts() {
 
     // 3. High Risk Students Calculation (Demo logic: 20% chance of being high risk)
     const riskListContainer = document.getElementById('highRiskList');
+    const riskDropdownContainer = document.getElementById('riskDropdown');
     let riskHtml = '';
+    let dropdownHtml = '';
     let riskCount = 0;
 
     parsedData.forEach((row, i) => {
@@ -368,15 +370,52 @@ function updateClassCharts() {
                     <button class="btn-risk-action" onclick="document.querySelector('.menu li[data-target=\\'personal-stats\\']').click(); document.getElementById('studentSelect').value = ${i}; document.getElementById('studentSelect').dispatchEvent(new Event('change'));">상세 보기</button>
                 </div>
             `;
+            dropdownHtml += `
+                <div class="risk-dropdown-item" onclick="document.querySelector('.menu li[data-target=\\'personal-stats\\']').click(); document.getElementById('studentSelect').value = ${i}; document.getElementById('studentSelect').dispatchEvent(new Event('change')); toggleRiskDropdown();">
+                    <strong>${getStudentName(row)}</strong>
+                    <span>${reason}</span>
+                </div>
+            `;
         }
     });
 
     if(riskCount === 0) {
         riskHtml = `<div style="color:var(--success); font-weight:600; padding:15px; background:#F0FFF4; border-radius:8px;"><i class="fa-solid fa-check-circle"></i> 전문가 기준 관심 필요 대상 학생이 발견되지 않았습니다.</div>`;
+        dropdownHtml = `<div style="padding:15px; text-align:center; color:var(--text-muted);">요주의 학생이 없습니다.</div>`;
     }
+    
+    riskListContainer.innerHTML = riskHtml;
+    riskDropdownContainer.innerHTML = dropdownHtml;
+
     const btnRiskNav = document.getElementById('btnRiskNav');
     btnRiskNav.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 요주의 학생목록 (${riskCount}명) <i class="fa-solid fa-caret-down"></i>`;
 }
+
+// MBTI Custom Tooltip Logic
+let mbtiTooltipEl = null;
+window.showMbtiTooltip = function(e) {
+    if(!mbtiTooltipEl) {
+        mbtiTooltipEl = document.createElement('div');
+        mbtiTooltipEl.className = 'mbti-custom-tooltip';
+        document.body.appendChild(mbtiTooltipEl);
+    }
+    const text = e.target.getAttribute('data-tooltip');
+    if(!text) return;
+    
+    mbtiTooltipEl.innerHTML = text ? text.split(', ').join('<br>') : '';
+    mbtiTooltipEl.classList.add('show');
+    
+    // Position
+    const rect = e.target.getBoundingClientRect();
+    mbtiTooltipEl.style.left = (rect.left + window.scrollX + rect.width / 2) + 'px';
+    mbtiTooltipEl.style.top = (rect.top + window.scrollY - mbtiTooltipEl.offsetHeight - 10) + 'px';
+    mbtiTooltipEl.style.transform = 'translateX(-50%)';
+};
+window.hideMbtiTooltip = function() {
+    if(mbtiTooltipEl) {
+        mbtiTooltipEl.classList.remove('show');
+    }
+};
 
 // Risk Dropdown UI
 window.toggleRiskDropdown = function() {
