@@ -79,18 +79,30 @@
                 </div>
 
                 <div class="button-group-vertical" style="margin-top: 20px;">
-                    <a href="https://docs.google.com/forms/d/1BXA-KhTcMxQ2b-c43JMVxZvV-rp3wbMcEC4-5Y0ZyOk/copy"
-                        target="_blank" class="btn btn-primary btn-lg" style="text-decoration: none;">
-                        <i class="fa-brands fa-google"></i> [1~2학년용] 설문지 사본 만들기
-                    </a>
-                    <a href="https://docs.google.com/forms/d/1Dw558Iaewycv8xG2j61H1ydo4pTiv9zqMrAOAbZ2D6I/copy"
-                        target="_blank" class="btn btn-secondary btn-lg" style="text-decoration: none;">
-                        <i class="fa-brands fa-google"></i> [3~4학년용] 설문지 사본 만들기
-                    </a>
-                    <a href="https://docs.google.com/forms/d/15J5MeUAWnCzSDPefQW5VvL-Mp3thyHoODgnANNQ_XHo/copy"
-                        target="_blank" class="btn btn-tertiary btn-lg" style="text-decoration: none;">
-                        <i class="fa-brands fa-google"></i> [5~6학년용] 설문지 사본 만들기
-                    </a>
+                    <div style="display:flex; gap:10px;">
+                        <a href="https://docs.google.com/forms/d/1BXA-KhTcMxQ2b-c43JMVxZvV-rp3wbMcEC4-5Y0ZyOk/copy"
+                            target="_blank" class="btn btn-primary btn-lg" style="text-decoration: none; flex: 1;">
+                            <i class="fa-brands fa-google"></i> [1~2학년용] 설문지 사본 만들기
+                        </a>
+                        <button onclick="openSurveyPreview('1~2학년용')" class="btn btn-outline-primary"
+                            style="white-space:nowrap;"><i class="fa-solid fa-eye"></i> 미리보기</button>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <a href="https://docs.google.com/forms/d/1Dw558Iaewycv8xG2j61H1ydo4pTiv9zqMrAOAbZ2D6I/copy"
+                            target="_blank" class="btn btn-secondary btn-lg" style="text-decoration: none; flex: 1;">
+                            <i class="fa-brands fa-google"></i> [3~4학년용] 설문지 사본 만들기
+                        </a>
+                        <button onclick="openSurveyPreview('3~4학년용')" class="btn btn-outline-secondary"
+                            style="white-space:nowrap;"><i class="fa-solid fa-eye"></i> 미리보기</button>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <a href="https://docs.google.com/forms/d/15J5MeUAWnCzSDPefQW5VvL-Mp3thyHoODgnANNQ_XHo/copy"
+                            target="_blank" class="btn btn-tertiary btn-lg" style="text-decoration: none; flex: 1;">
+                            <i class="fa-brands fa-google"></i> [5~6학년용] 설문지 사본 만들기
+                        </a>
+                        <button onclick="openSurveyPreview('5~6학년용')" class="btn btn-outline-tertiary"
+                            style="white-space:nowrap;"><i class="fa-solid fa-eye"></i> 미리보기</button>
+                    </div>
                 </div>
             </section>
 
@@ -105,8 +117,8 @@
                     <textarea id="dataTextarea"
                         placeholder="[예시]&#10;학년	반	번호	이름	문항1	문항2&#10;6	1	1	홍길동	5	4&#10;...여기에 데이터를 붙여넣으세요."></textarea>
                     <div class="action-bar">
-                        <button id="parseDataBtn" class="btn btn-primary"><i class="fa-solid fa-file-import"></i> 데이터 파싱
-                            및 불러오기</button>
+                        <button id="parseDataBtn" class="btn btn-primary"><i class="fa-solid fa-file-import"></i>
+                            저장하기</button>
                     </div>
                 </div>
                 <div class="preview-area" style="display: none; margin-top:20px;">
@@ -208,10 +220,29 @@
                 </div>
             </section>
 
+            <!-- Preview Modal -->
+            <div id="surveyPreviewModal" class="modal-overlay" style="display:none;">
+                <div class="modal-content" style="max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                    <div class="modal-header"
+                        style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+                        <h2 id="surveyPreviewTitle" style="margin: 0; font-size: 1.4rem;">설문지 원본 미리보기</h2>
+                        <button onclick="closeSurveyPreview()"
+                            style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+                    </div>
+                    <div id="surveyPreviewBody" style="line-height: 1.6;">
+                        <!-- JS Injection -->
+                    </div>
+                    <div class="modal-footer" style="text-align: right; margin-top: 20px;">
+                        <button onclick="closeSurveyPreview()" class="btn btn-secondary">닫기</button>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
     <!-- Script -->
+    <script src="survey-data.js"></script>
     <script src="app.js"></script>
 </body>
 

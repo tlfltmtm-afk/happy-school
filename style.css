@@ -429,3 +429,84 @@ tr:hover {
         grid-template-columns: 1fr;
     }
 }
+
+/* Outline Buttons */
+.btn-outline-primary {
+    background-color: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
+    color: var(--secondary-color);
+    border: 2px solid var(--secondary-color);
+}
+.btn-outline-secondary:hover {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.btn-outline-tertiary {
+    background-color: transparent;
+    color: var(--tertiary-color);
+    border: 2px solid var(--tertiary-color);
+}
+.btn-outline-tertiary:hover {
+    background-color: var(--tertiary-color);
+    color: white;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: var(--card-bg);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.survey-section-header {
+    background-color: #F8FAFC;
+    padding: 10px 15px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    color: var(--text-main);
+    border-left: 4px solid var(--primary-color);
+}
+
+.survey-question-item {
+    padding: 8px 10px;
+    border-bottom: 1px dashed var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+}
+.survey-question-item:last-child {
+    border-bottom: none;
+}
+.eval-badge {
+    background-color: #E6F4EF;
+    color: var(--primary-color);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}

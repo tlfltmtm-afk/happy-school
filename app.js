@@ -435,3 +435,48 @@ studentSelect.addEventListener('change', (e) => {
         </div>
     `;
 });
+
+// Survey Preview Modal Logic
+window.openSurveyPreview = function(grade) {
+    const modal = document.getElementById('surveyPreviewModal');
+    const title = document.getElementById('surveyPreviewTitle');
+    const body = document.getElementById('surveyPreviewBody');
+    
+    if (!SURVEY_DATA || !SURVEY_DATA[grade]) {
+        alert("해당 학년의 설문지 원본 데이터를 찾을 수 없습니다.");
+        return;
+    }
+
+    title.innerText = `[${grade}] 설문지 원본 문항 미리보기`;
+    
+    let html = '';
+    SURVEY_DATA[grade].forEach(section => {
+        html += `<div class="survey-section-header">${section.section}</div>`;
+        section.questions.forEach(q => {
+            html += `
+                <div class="survey-question-item">
+                    <span style="flex:1;">${q.q}</span>
+                    <span class="eval-badge">${q.eval}</span>
+                </div>
+            `;
+        });
+    });
+
+    body.innerHTML = html;
+    modal.style.display = 'flex';
+};
+
+window.closeSurveyPreview = function() {
+    const modal = document.getElementById('surveyPreviewModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('surveyPreviewModal');
+    if (event.target === modal) {
+        closeSurveyPreview();
+    }
+});
