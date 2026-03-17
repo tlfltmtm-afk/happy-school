@@ -114,6 +114,71 @@ function transformWeakness(weakness) {
     return `${weakness} 점이 앞으로 점차 개선될 것으로 기대됨`;
 }
 
+// Extract student-specific keywords from raw survey data
+function extractKeywordsForStudent(row) {
+    let grade = String(row['학년'] || Object.values(row)[0] || "O");
+    let version = 'v3';
+    if(grade.includes('1') || grade.includes('2')) version = 'v1';
+    else if(grade.includes('3') || grade.includes('4')) version = 'v2';
+    
+    let strengthsPool = [];
+    let weaknessesPool = [];
+    const rowValues = Object.values(row); 
+    
+    // MAPPING_DATA depends on db.js being loaded
+    if(typeof MAPPING_DATA !== 'undefined' && typeof KEYWORD_BANK !== 'undefined') {
+        Object.keys(MAPPING_DATA).forEach(category => {
+            if(category === 'MBTI') return; // Handled differently if needed
+            
+            Object.keys(MAPPING_DATA[category]).forEach(sub => {
+                const qNums = MAPPING_DATA[category][sub][version];
+                if(!qNums) return;
+                
+                let totalScore = 0;
+                let count = 0;
+                qNums.forEach(qNum => {
+                    const valStr = rowValues[3 + qNum]; // Q1 is at index 4
+                    if(valStr) {
+                        const valMatch = String(valStr).match(/\d+/); // extract number "5" from "5. 매우 그렇다"
+                        if(valMatch) {
+                            totalScore += parseInt(valMatch[0], 10);
+                            count++;
+                        }
+                    }
+                });
+                
+                if(count > 0) {
+                    const avg = totalScore / count;
+                    const banks = KEYWORD_BANK[category][sub];
+                    if(!banks) return;
+                    
+                    if(avg >= 4.0) { // Strong positive
+                        if(banks["강점"]) strengthsPool = strengthsPool.concat(getRandomItems(banks["강점"], 3));
+                    } else if(avg <= 2.5) { // Needs improvement
+                        if(banks["보완"]) weaknessesPool = weaknessesPool.concat(getRandomItems(banks["보완"], 2));
+                    } else { // Neutral/Moderate
+                        if(banks["강점"]) strengthsPool = strengthsPool.concat(getRandomItems(banks["강점"], 1));
+                    }
+                }
+            });
+        });
+    }
+
+    // Fallback if extraction is empty
+    if(strengthsPool.length < 10) {
+        strengthsPool = strengthsPool.concat(getRandomItems(allStrengths, 15 - strengthsPool.length));
+    }
+    if(weaknessesPool.length === 0) {
+        weaknessesPool = weaknessesPool.concat(getRandomItems(allWeaknesses, 3));
+    }
+
+    // Deduplicate
+    strengthsPool = [...new Set(strengthsPool)];
+    weaknessesPool = [...new Set(weaknessesPool)];
+
+    return { strengths: strengthsPool, weaknesses: weaknessesPool };
+}
+
 // AI Table Logic
 function populateAiTable() {
     const tbody = document.querySelector('#aiDataTable tbody');
@@ -123,18 +188,18 @@ function populateAiTable() {
         const name = getStudentName(row);
         const meta = getStudentMeta(row);
 
-        // Extract >= 15 strengths
-        const strengths = getRandomItems(allStrengths, 15);
-        // Extract <= 5 weaknesses
-        const rawWeaknesses = getRandomItems(allWeaknesses, Math.floor(Math.random() * 3) + 2); // 2~4
-
+        // Dynamically extract based on real survey data instead of completely random
+        const extracted = extractKeywordsForStudent(row);
+        
+        row._strengths = extracted.strengths;
+        row._weaknesses = extracted.weaknesses.map(transformWeakness);
         row._aiGenerated = "";
 
-        const strengthsHtml = strengths.map(s => 
+        const strengthsHtml = row._strengths.map(s => 
             `<span class="keyword-badge strength active" onclick="toggleKeyword(this)">${s}</span>`
         ).join('');
         
-        const weaknessesHtml = rawWeaknesses.map(w => 
+        const weaknessesHtml = row._weaknesses.map(w => 
             `<span class="keyword-badge weakness active" onclick="toggleKeyword(this)">${w}</span>`
         ).join('');
 
@@ -501,8 +566,11 @@ studentSelect.addEventListener('change', (e) => {
         }
     });
 
-    if(!row._strengths) row._strengths = getRandomItems(allStrengths, 15); // Require more keywords
-    if(!row._weaknesses) row._weaknesses = getRandomItems(allWeaknesses, 4).map(transformWeakness);
+    if(!row._strengths || !row._weaknesses) {
+        const extracted = extractKeywordsForStudent(row);
+        row._strengths = extracted.strengths;
+        row._weaknesses = extracted.weaknesses.map(transformWeakness);
+    }
 
     document.getElementById('studentSummary').innerHTML = `
         <div class="summary-box">
