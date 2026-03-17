@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>설문과 컨설팅 그리고 행발문장</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- ---------------- 사이드바 내비게이션 ---------------- -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-school"></i>
+                <span>설문과 행발</span>
+            </div>
+            <ul class="menu">
+                <li class="active" data-target="guide"><i class="fa-solid fa-book"></i> 사용 설명서</li>
+                <li data-target="form-copy"><i class="fa-solid fa-copy"></i> 학생 설문지</li>
+                <li data-target="data-input"><i class="fa-solid fa-upload"></i> 응답 데이터 입력</li>
+                <li data-target="class-stats"><i class="fa-solid fa-chart-pie"></i> 학급 전체 컨설팅</li>
+                <li data-target="personal-stats"><i class="fa-solid fa-user"></i> 개인별 맞춤 컨설팅</li>
+                <li data-target="ai-generator"><i class="fa-solid fa-wand-magic-sparkles"></i> AI 행동발달 생성기</li>
+            </ul>
+        </nav>
+
+        <!-- ---------------- 메인 컨텐츠 영역 ---------------- -->
+        <main class="main-content">
+
+            <!-- 1. 사용 설명서 (홈) -->
+            <section id="guide" class="page-section active">
+                <header>
+                    <h1>선생님, 환영합니다!</h1>
+                    <p>학년 초 학생 설문을 통해 컨설팅과 AI 행동발달문장을 완성하세요.</p>
+                </header>
+                <div class="guide-steps">
+                    <div class="step-card">
+                        <div class="step-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+                        <h3>1단계: 설문지 사본 복사</h3>
+                        <p>학생들의 학년에 맞는 구글 폼 사본을 복사하여 배포하세요.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-icon"><i class="fa-solid fa-table-list"></i></div>
+                        <h3>2단계: 데이터 결과 입력</h3>
+                        <p>수집된 구글 스프레드시트 결과물 데이터를 복사하여 붙여넣으세요.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-icon"><i class="fa-solid fa-robot"></i></div>
+                        <h3>3단계: 통계 및 AI 평어</h3>
+                        <p>학급 및 학생별 차트를 확인하고 행동발달 문장을 생성하세요.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 구글 설문지 사본 만들기 -->
+            <section id="form-copy" class="page-section">
+                <header>
+                    <h1>구글 설문지 사본 만들기</h1>
+                    <p>학생군(학년)에 맞는 설문지 링크를 클릭하여, 사본을 만들어 본인 구글 드라이브에 저장하세요. 그리고 설문을 실시하세요.</p>
+                </header>
+
+                <div class="survey-info">
+                    <h3>📝 설문지 안내</h3>
+                    <ul>
+                        <li><strong>설문 문항수:</strong> 1~2학년 (16문항), 3~4학년 (32문항), 5~6학년 (48문항)</li>
+                        <li><strong>소요 시간:</strong> 약 5~15분 내외</li>
+                        <li><strong>설문 내용:</strong> 학생의 학교생활 적응력, 행복감, 다중지능 강점 등 맞춤형 행동발달사항 작성을 위한 기초 자료 조사</li>
+                    </ul>
+                </div>
+
+                <div class="button-group-vertical" style="margin-top: 20px;">
+                    <a href="https://docs.google.com/forms/d/1BXA-KhTcMxQ2b-c43JMVxZvV-rp3wbMcEC4-5Y0ZyOk/copy"
+                        target="_blank" class="btn btn-primary btn-lg" style="text-decoration: none;">
+                        <i class="fa-brands fa-google"></i> [1~2학년용] 설문지 사본 만들기
+                    </a>
+                    <a href="https://docs.google.com/forms/d/1Dw558Iaewycv8xG2j61H1ydo4pTiv9zqMrAOAbZ2D6I/copy"
+                        target="_blank" class="btn btn-secondary btn-lg" style="text-decoration: none;">
+                        <i class="fa-brands fa-google"></i> [3~4학년용] 설문지 사본 만들기
+                    </a>
+                    <a href="https://docs.google.com/forms/d/15J5MeUAWnCzSDPefQW5VvL-Mp3thyHoODgnANNQ_XHo/copy"
+                        target="_blank" class="btn btn-tertiary btn-lg" style="text-decoration: none;">
+                        <i class="fa-brands fa-google"></i> [5~6학년용] 설문지 사본 만들기
+                    </a>
+                </div>
+            </section>
+
+            <!-- 3. 데이터 입력 -->
+            <section id="data-input" class="page-section">
+                <header>
+                    <h1>응답 결과 데이터 입력</h1>
+                    <p>구글 스프레드시트의 응답 결과를 전체 복사(Ctrl+C)하여 아래 칸에 붙여넣기(Ctrl+V) 하세요.</p>
+                </header>
+                <div class="input-area">
+                    <label>스프레드시트 데이터 붙여넣기 (헤더 행 포함)</label>
+                    <textarea id="dataTextarea"
+                        placeholder="[예시]&#10;학년	반	번호	이름	문항1	문항2&#10;6	1	1	홍길동	5	4&#10;...여기에 데이터를 붙여넣으세요."></textarea>
+                    <div class="action-bar">
+                        <button id="parseDataBtn" class="btn btn-primary"><i class="fa-solid fa-file-import"></i> 데이터 파싱
+                            및 불러오기</button>
+                    </div>
+                </div>
+                <div class="preview-area" style="display: none; margin-top:20px;">
+                    <h3><i class="fa-solid fa-table"></i> 입력 데이터 미리보기</h3>
+                    <div class="table-container">
+                        <table id="previewTable">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. 학급 전체 컨설팅 -->
+            <section id="class-stats" class="page-section">
+                <header>
+                    <h1>학급 전체 컨설팅</h1>
+                    <p>우리 반 전체 학생들의 경향성과 항목별 평균을 확인하실 수 있습니다.</p>
+                </header>
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>학급 행복 요소 평균 (방사형)</h3>
+                        <canvas id="classRadarChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>학교생활 적응력 분표 (막대형)</h3>
+                        <canvas id="classBarChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. 개인별 맞춤 컨설팅 -->
+            <section id="personal-stats" class="page-section">
+                <header>
+                    <h1>개인별 맞춤 컨설팅</h1>
+                    <p>분석할 학생을 아래 목록에서 선택해주세요.</p>
+                    <select id="studentSelect" class="form-select">
+                        <option value="">-- 학생을 선택하세요 --</option>
+                    </select>
+                </header>
+                <div id="studentProfile" class="profile-card" style="display: none;">
+                    <div class="profile-header">
+                        <div class="avatar"><i class="fa-solid fa-face-smile"></i></div>
+                        <div class="info">
+                            <h2 id="studentName">김학생</h2>
+                            <p id="studentMeta">6학년 1반 1번</p>
+                            <div class="badges">
+                                <span class="badge" id="studentMbti">MBTI: ENTP</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="profile-content">
+                        <div class="chart-container">
+                            <canvas id="studentRadarChart"></canvas>
+                        </div>
+                        <div class="summary-text" id="studentSummary">
+                            <!-- JS Injection -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. AI 행동발달 생성기 -->
+            <section id="ai-generator" class="page-section">
+                <header>
+                    <h1>AI 행동발달문장 생성기</h1>
+                    <p>학생별로 추천된 키워드를 바탕으로 학교생활기록부용 평어를 자동 생성합니다.</p>
+                    <div class="action-buttons" style="margin-top:15px;">
+                        <button id="generateAllBtn" class="btn btn-primary"><i
+                                class="fa-solid fa-wand-magic-sparkles"></i> 전체 학생 일괄 생성</button>
+                        <button id="copyAllBtn" class="btn btn-secondary"><i class="fa-solid fa-copy"></i> 전체
+                            복사</button>
+                        <button id="downloadExcelBtn" class="btn btn-success"><i class="fa-solid fa-file-excel"></i> 엑셀로
+                            다운로드</button>
+                    </div>
+                </header>
+                <div class="table-container" style="margin-top: 25px;">
+                    <table id="aiDataTable">
+                        <thead>
+                            <tr>
+                                <th width="5%">번호</th>
+                                <th width="10%">이름/소속</th>
+                                <th width="20%">추출된 강점 키워드</th>
+                                <th width="15%">추출된 보완 키워드</th>
+                                <th width="40%">AI 평어 생성 결과</th>
+                                <th width="10%">작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="empty-state">
+                                    <i class="fa-solid fa-inbox fa-3x"
+                                        style="color:var(--border-color);margin-bottom:15px;"></i>
+                                    <br>먼저 [데이터 입력] 메뉴에서 응답 결과를 입력해주세요.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Script -->
+    <script src="app.js"></script>
+</body>
+
+</html>
