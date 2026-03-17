@@ -138,14 +138,29 @@
                     <h1>학급 전체 컨설팅</h1>
                     <p>우리 반 전체 학생들의 경향성과 항목별 평균을 확인하실 수 있습니다.</p>
                 </header>
-                <div class="charts-grid">
-                    <div class="chart-card">
-                        <h3>학급 행복 요소 평균 (방사형)</h3>
-                        <canvas id="classRadarChart"></canvas>
+                <div class="charts-wrap">
+                    <div class="charts-grid-small">
+                        <div class="chart-card">
+                            <h3>학급 행복 요소 평균 (방사형)</h3>
+                            <div class="canvas-wrapper"><canvas id="classRadarChart"></canvas></div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>학교생활 적응력 분포 (막대형)</h3>
+                            <div class="canvas-wrapper"><canvas id="classBarChart"></canvas></div>
+                        </div>
                     </div>
-                    <div class="chart-card">
-                        <h3>학교생활 적응력 분표 (막대형)</h3>
-                        <canvas id="classBarChart"></canvas>
+                    <div class="chart-card mbti-card">
+                        <h3>학급 MBTI 성향 분포</h3>
+                        <div id="mbtiDistribution" class="mbti-container">
+                            <!-- JS Injection -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="high-risk-section" style="margin-top: 30px;">
+                    <h3 style="color:var(--text-main); margin-bottom: 15px;"><i class="fa-solid fa-triangle-exclamation" style="color:#E53E3E;"></i> 전문가 기준 관심 필요 학생</h3>
+                    <div id="highRiskList" class="risk-list-container">
+                        <!-- JS Injection -->
                     </div>
                 </div>
             </section>
@@ -242,6 +257,7 @@
     </div>
 
     <!-- Script -->
+    <script src="db.js"></script>
     <script src="survey-data.js"></script>
     <script src="app.js"></script>
 </body>

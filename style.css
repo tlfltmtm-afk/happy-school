@@ -295,11 +295,24 @@ tr:hover {
     padding: 40px;
 }
 
-/* Charts */
-.charts-grid {
+/* Charts Layout Updates */
+.charts-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.charts-grid-small {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 30px;
+}
+
+.canvas-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 350px;
+    margin: 0 auto;
 }
 
 .chart-card {
@@ -421,10 +434,8 @@ tr:hover {
     }
     .main-content {
         margin-left: 0;
-        width: 100%;
-        padding: 20px;
     }
-    .guide-steps, .charts-grid, .profile-content {
+    .charts-grid-small, .profile-content {
         flex-direction: column;
         grid-template-columns: 1fr;
     }
