@@ -123,73 +123,118 @@ function populateAiTable() {
         const name = getStudentName(row);
         const meta = getStudentMeta(row);
 
-        const strengths = getRandomItems(allStrengths, 2);
-        const rawWeakness = getRandomItems(allWeaknesses, 1)[0];
-        const weakness = transformWeakness(rawWeakness);
+        // Extract >= 15 strengths
+        const strengths = getRandomItems(allStrengths, 15);
+        // Extract <= 5 weaknesses
+        const rawWeaknesses = getRandomItems(allWeaknesses, Math.floor(Math.random() * 3) + 2); // 2~4
 
-        row._strengths = strengths;
-        row._weaknesses = [weakness];
         row._aiGenerated = "";
 
+        const strengthsHtml = strengths.map(s => 
+            `<span class="keyword-badge strength active" onclick="toggleKeyword(this)">${s}</span>`
+        ).join('');
+        
+        const weaknessesHtml = rawWeaknesses.map(w => 
+            `<span class="keyword-badge weakness active" onclick="toggleKeyword(this)">${w}</span>`
+        ).join('');
+
         const tr = document.createElement('tr');
+        tr.id = `ai-row-${index}`;
         tr.innerHTML = `
             <td>${index + 1}</td>
             <td><strong>${name}</strong><br><small style="color:var(--text-muted)">${meta}</small></td>
-            <td><span class="badge" style="background:var(--success);color:white">${strengths.join(', ')}</span></td>
-            <td><span class="badge" style="background:#E2B467;color:white">${rawWeakness}</span></td>
+            <td id="ai-strengths-${index}">${strengthsHtml}</td>
+            <td id="ai-weaknesses-${index}">${weaknessesHtml}</td>
+            <td><button class="btn btn-outline-primary btn-sm" onclick="copyManualPrompt(${index})" style="width:100%"><i class="fa-solid fa-copy"></i> 수동 복사</button></td>
             <td id="ai-result-${index}" style="font-size:0.95rem; line-height:1.5; color:var(--text-muted);">
-                [AI 생성 버튼을 눌러주세요]
+                [대기중] API Key 입력 후 클릭
             </td>
-            <td><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})"><i class="fa-solid fa-robot"></i> 생성</button></td>
+            <td><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})"><i class="fa-solid fa-robot"></i></button></td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-window.generateAiText = function(index) {
+// Toggle Keyword Badge
+window.toggleKeyword = function(el) {
+    el.classList.toggle('active');
+};
+
+// Generate Manual Prompt Text
+window.generateManualPromptText = function(index) {
     const row = parsedData[index];
     const name = getStudentName(row);
+    const meta = getStudentMeta(row);
+    
+    // Read active badges from DOM
+    const strengthNodes = document.querySelectorAll(`#ai-strengths-${index} .keyword-badge.strength.active`);
+    const weaknessNodes = document.querySelectorAll(`#ai-weaknesses-${index} .keyword-badge.weakness.active`);
+    
+    const activeStrengths = Array.from(strengthNodes).map(n => n.innerText);
+    const activeWeaknesses = Array.from(weaknessNodes).map(n => n.innerText);
+    
+    let prompt = `다음 학생의 학교생활기록부 행동발달 문장을 300자 내외로 작성해줘.\n`;
+    prompt += `- 학생 이름: ${name}\n`;
+    prompt += `- 배경 정보: ${meta}\n`;
+    prompt += `- 주요 강점 키워드: ${activeStrengths.join(', ')}\n`;
+    if(activeWeaknesses.length > 0) {
+        prompt += `- 지도 및 보완 요망 지점: ${activeWeaknesses.join(', ')}\n`;
+    }
+    prompt += `어조는 교사가 학생을 객관적이면서도 애정어린 시선으로 관찰한 긍정적 평어체로, '~함.', '~임.' 으로 끝나게 작성해줘.`;
+    return prompt;
+};
+
+// Copy Manual Prompt for a single student
+window.copyManualPrompt = function(index) {
+    const promptText = generateManualPromptText(index);
+    navigator.clipboard.writeText(promptText).then(() => {
+        alert(`${parsedData[index]['이름'] || '학생'}의 평어 생성 프롬프트가 복사되었습니다! ChatGPT나 Claude에 붙여넣으세요.`);
+    });
+};
+
+// Create mock AI result or use real logic depending on future Needs
+window.generateAiText = function(index) {
+    const row = parsedData[index];
+    const apiKey = document.getElementById('apiKeyInput')?.value || '';
     const resultCell = document.getElementById(`ai-result-${index}`);
     
-    resultCell.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:var(--primary-color)"></i> 생성 중...`;
-    resultCell.style.color = "var(--text-main)";
+    // Read active badges from DOM
+    const strengthNodes = document.querySelectorAll(`#ai-strengths-${index} .keyword-badge.strength.active`);
+    const activeStrengths = Array.from(strengthNodes).map(n => n.innerText);
+
+    if(!apiKey) {
+        // Mock generation using active badges
+        resultCell.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:var(--primary-color)"></i> 생성 중...`;
+        setTimeout(() => {
+            const sampleStrengths = activeStrengths.slice(0, 3).join(', ');
+            const mockText = `평소 ${sampleStrengths} 등의 긍정적 측면이 돋보이며 학급 분위기를 쇄신함. 앞으로의 성장이 더욱 기대되는 모범적인 학생임.`;
+            row._aiGenerated = mockText;
+            resultCell.innerText = mockText;
+        }, 800 + Math.random() * 700);
+        return;
+    }
     
-    // Mock API Delay
-    setTimeout(() => {
-        const promptText = `평소 ${row._strengths.join(' 및 ')}하는 모습이 보이며 학급 일에 솔선수범함. 교우들과 사이좋게 지내며 ${row._strengths[0]} 장점을 활용해 학급 분위기를 밝게 만듦. ${row._weaknesses[0]}하며, 긍정적인 태도 덕분에 앞으로의 학교 생활에서 본인의 잠재력을 충분히 발휘하며 더 큰 성장이 기대됨.`;
-        
-        row._aiGenerated = promptText;
-        resultCell.innerText = promptText;
-    }, 800 + Math.random() * 700);
+    // Real API Logic placeholder
+    resultCell.innerText = "API 연결 기능은 현재 데모 버전에서 미지원 상태입니다. [수동 복사]를 활용해주세요.";
 }
 
 document.getElementById('generateAllBtn').addEventListener('click', () => {
-    if(parsedData.length === 0) return alert("데이터를 먼저 입력해주세요.");
+    if(parsedData.length === 0) return alert("데이터를 먼저 분석해주세요.");
     for(let i=0; i<parsedData.length; i++) {
         setTimeout(()=>{
             window.generateAiText(i);
-        }, i*500); // 0.5초 간격으로 생성
+        }, i*300); 
     }
 });
 
-document.getElementById('copyAllBtn').addEventListener('click', () => {
-    let text = "이름\tAI 평어\n";
-    let hasData = false;
-    parsedData.forEach((row) => {
-        if(row._aiGenerated) {
-            text += `${getStudentName(row)}\t${row._aiGenerated}\n`;
-            hasData = true;
-        }
+document.getElementById('copyAllPromptBtn').addEventListener('click', () => {
+    if(parsedData.length === 0) return alert("데이터가 없습니다.");
+    let text = "이름\t소속\tAI 수동생성용 프롬프트 명령어\n";
+    parsedData.forEach((row, index) => {
+        const prompt = generateManualPromptText(index).replace(/\n/g, " "); // Replace newlines for excel
+        text += `${getStudentName(row)}\t${getStudentMeta(row)}\t${prompt}\n`;
     });
-    if(hasData) {
-        navigator.clipboard.writeText(text).then(() => alert("전체 평어가 엑셀 붙여넣기 형태로 클립보드에 복사되었습니다."));
-    } else {
-        alert("아직 생성된 AI 평어가 없습니다.");
-    }
-});
-
-document.getElementById('downloadExcelBtn').addEventListener('click', () => {
-    alert("준비 중인 기능입니다. 현재는 [전체 복사] 후 엑셀에 붙여넣어 사용해주세요.");
+    navigator.clipboard.writeText(text).then(() => alert("전체 학생의 [수동 프롬프트]가 엑셀 붙여넣기 형태로 클립보드에 복사되었습니다."));
 });
 
 
@@ -240,6 +285,27 @@ function updateClassCharts() {
         options: {
             scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } },
             plugins: { legend: { display: false } }
+        }
+    });
+
+    const ctxMi = document.getElementById('classMiChart').getContext('2d');
+    if(classCharts.mi) classCharts.mi.destroy();
+    classCharts.mi = new Chart(ctxMi, {
+        type: 'radar',
+        data: {
+            labels: ['언어', '논리수학', '공간', '신체운동', '음악', '대인관계', '자기성찰', '자연친화'],
+            datasets: [{
+                label: '학급 평균 다중지능',
+                data: [3.5, 3.8, 4.0, 4.2, 3.6, 4.1, 3.7, 3.9],
+                backgroundColor: 'rgba(155, 134, 219, 0.2)',
+                borderColor: '#9B86DB',
+                pointBackgroundColor: '#9B86DB',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            scales: { r: { min: 0, max: 5, ticks: { stepSize: 1, backdropColor: 'transparent' } } },
+            plugins: { legend: { position: 'bottom' } }
         }
     });
 
@@ -308,9 +374,40 @@ function updateClassCharts() {
     if(riskCount === 0) {
         riskHtml = `<div style="color:var(--success); font-weight:600; padding:15px; background:#F0FFF4; border-radius:8px;"><i class="fa-solid fa-check-circle"></i> 전문가 기준 관심 필요 대상 학생이 발견되지 않았습니다.</div>`;
     }
-    
-    riskListContainer.innerHTML = riskHtml;
+    const btnRiskNav = document.getElementById('btnRiskNav');
+    btnRiskNav.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 요주의 학생목록 (${riskCount}명) <i class="fa-solid fa-caret-down"></i>`;
 }
+
+// Risk Dropdown UI
+window.toggleRiskDropdown = function() {
+    const dropdown = document.getElementById('riskDropdown');
+    if (dropdown.style.display === 'none') {
+        dropdown.style.display = 'block';
+    } else {
+        dropdown.style.display = 'none';
+    }
+};
+
+window.addEventListener('click', function(event) {
+    const btn = document.getElementById('btnRiskNav');
+    const dropdown = document.getElementById('riskDropdown');
+    if (btn && dropdown && !btn.contains(event.target) && !dropdown.contains(event.target)) {
+        dropdown.style.display = 'none';
+    }
+    const modal = document.getElementById('surveyPreviewModal');
+    if (event.target === modal) {
+        closeSurveyPreview();
+    }
+});
+
+// Tab Switching Logic
+window.switchTab = function(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(pane => pane.style.display = 'none');
+    
+    document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+    document.getElementById(tabId).style.display = 'block';
+};
 
 // Student Select change
 studentSelect.addEventListener('change', (e) => {
@@ -331,35 +428,23 @@ studentSelect.addEventListener('change', (e) => {
         row._mbti = mbtiArr[Math.floor(Math.random() * mbtiArr.length)];
     }
     
-    document.getElementById('studentMbti').innerHTML = `<span style="font-size: 1.2rem; font-weight: 800; color: #333;">MBTI: <span style="color:var(--primary-color)">${row._mbti}</span></span>`;
+    document.getElementById('studentMbti').innerHTML = `MBTI: <span style="color:var(--primary-color)">${row._mbti}</span>`;
 
-    let buttonHtml = `<button onclick="showStudentRawData(${index})" class="btn btn-outline-primary btn-sm" style="margin-top:15px;"><i class="fa-solid fa-file-lines"></i> 원본 응답 조회</button>`;
-    
-    // Check if button already exists, if not prepend it
-    let infoDiv = document.querySelector('.profile-header .info');
-    let oldBtn = infoDiv.querySelector('button');
-    if(oldBtn) oldBtn.remove();
-    infoDiv.insertAdjacentHTML('beforeend', buttonHtml);
+    // Reset Tabs
+    switchTab('tab-happiness');
 
     profileCard.style.display = 'block';
 
-    const ctx = document.getElementById('studentRadarChart').getContext('2d');
+    // 1. Happiness Chart
+    const ctxRadar = document.getElementById('studentRadarChart').getContext('2d');
     if(classCharts.studentRadar) classCharts.studentRadar.destroy();
-
-    classCharts.studentRadar = new Chart(ctx, {
+    classCharts.studentRadar = new Chart(ctxRadar, {
         type: 'radar',
         data: {
             labels: ['긍정성', '정서조절', '안정감', '관계성', '유능감', '자율성'],
             datasets: [{
-                label: '학생 개별 역량 점수',
-                data: [
-                    2.5 + Math.random()*2.5, 
-                    2.5 + Math.random()*2.5, 
-                    2.5 + Math.random()*2.5, 
-                    2.5 + Math.random()*2.5, 
-                    2.5 + Math.random()*2.5, 
-                    2.5 + Math.random()*2.5
-                ],
+                label: '개별 행복 점수',
+                data: Array.from({length:6}, () => 2.5 + Math.random()*2.5),
                 backgroundColor: 'rgba(244, 196, 118, 0.3)',
                 borderColor: '#F4C476',
                 pointBackgroundColor: '#F4C476',
@@ -372,28 +457,88 @@ studentSelect.addEventListener('change', (e) => {
         }
     });
 
-    if(!row._strengths) {
-        row._strengths = getRandomItems(allStrengths, 4); // Increased keywords
-    }
-    if(!row._weaknesses) {
-        row._weaknesses = [transformWeakness(getRandomItems(allWeaknesses, 1)[0]), transformWeakness(getRandomItems(allWeaknesses, 1)[0])]; // 2 weaknesses
-    }
+    if(!row._strengths) row._strengths = getRandomItems(allStrengths, 15); // Require more keywords
+    if(!row._weaknesses) row._weaknesses = getRandomItems(allWeaknesses, 4).map(transformWeakness);
 
     document.getElementById('studentSummary').innerHTML = `
         <div class="summary-box">
-            <h4><i class="fa-solid fa-thumbs-up" style="color:var(--primary-color)"></i> 학생의 주요 강점 키워드</h4>
+            <h4><i class="fa-solid fa-thumbs-up" style="color:var(--primary-color)"></i> 대표 강점 파악 (상위 5개 우선)</h4>
             <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
-                ${row._strengths.map(s => `<span class="badge" style="background:#E6F4EF; color:var(--primary-color)">${s}</span>`).join('')}
+                ${row._strengths.slice(0, 5).map(s => `<span class="badge" style="background:#E6F4EF; color:var(--primary-color)">${s}</span>`).join('')}
             </div>
         </div>
          <div class="summary-box">
-            <h4><i class="fa-solid fa-seedling" style="color:#E2B467"></i> 지도 보완 및 기대 가능성</h4>
+            <h4><i class="fa-solid fa-seedling" style="color:#E2B467"></i> 지도 보완 요망 지점</h4>
             <ul style="margin-top:10px; padding-left:20px; color:var(--text-muted); font-size:0.95rem;">
                 ${row._weaknesses.map(w => `<li>${w}</li>`).join('')}
             </ul>
         </div>
     `;
+
+    // 2. MBTI detail
+    document.getElementById('studentMbtiDetail').innerHTML = `
+        <h4 style="color:var(--primary-color); margin-bottom:10px;">${row._mbti} 유형 행동 특성 요약</h4>
+        <p>평소 외부 환경에 대한 호기심이 많고 교우들과 활발하게 소통하는 편입니다. 사실적인 지표나 체계적인 학습보다는 창의적이고 자율적인 과제에서 더 높은 성취를 보이는 경향이 있습니다. 관계 지향적이어서 주변의 인정에 크게 동기부여를 받습니다.</p>
+        <p style="margin-top:10px; font-size:0.9rem; color:#666;">※ 위 특성은 설문응답 데이터와 MBTI 지표를 종합한 추정 내용입니다.</p>
+    `;
+
+    // 3. MI Chart
+    const ctxMi = document.getElementById('studentMiChart').getContext('2d');
+    if(classCharts.studentMi) classCharts.studentMi.destroy();
+    classCharts.studentMi = new Chart(ctxMi, {
+        type: 'radar',
+        data: {
+            labels: ['언어', '논리수학', '공간', '신체운동', '음악', '대인관계', '자기성찰', '자연친화'],
+            datasets: [{
+                label: '학생 다중지능 프로파일',
+                data: Array.from({length:8}, () => 2.5 + Math.random()*2.5),
+                backgroundColor: 'rgba(155, 134, 219, 0.3)',
+                borderColor: '#9B86DB',
+                pointBackgroundColor: '#9B86DB',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            scales: { r: { min: 0, max: 5, ticks: { stepSize: 1, backdropColor: 'transparent' } } },
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    // 4. Adapt Chart
+    const ctxAdapt = document.getElementById('studentAdaptChart').getContext('2d');
+    if(classCharts.studentAdapt) classCharts.studentAdapt.destroy();
+    classCharts.studentAdapt = new Chart(ctxAdapt, {
+        type: 'bar',
+        data: {
+            labels: ['교우관계', '교사관계', '학업태도', '규칙준수'],
+            datasets: [{
+                label: '항목별 적응 수준',
+                data: Array.from({length:4}, () => 2.5 + Math.random()*2.5),
+                backgroundColor: '#92B4F2',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // 5. Raw Survey Data Render
+    let html = '<table style="width:100%; border-collapse: collapse; font-size: 0.95rem;">';
+    html += '<thead><tr><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">항목 헤더</th><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">응답 값</th></tr></thead><tbody>';
+    Object.keys(row).forEach(key => {
+        if(!key.startsWith('_')) {
+            html += `<tr>
+                <td style="padding:12px; border-bottom:1px solid #eee; font-weight:500; width:40%;">${key}</td>
+                <td style="padding:12px; border-bottom:1px solid #eee; color: var(--text-main);">${row[key]}</td>
+            </tr>`;
+        }
+    });
+    html += '</tbody></table>';
+    document.getElementById('studentSurveyRaw').innerHTML = html;
 });
+
 
 // Survey Preview Modal Logic
 window.openSurveyPreview = function(grade) {

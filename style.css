@@ -521,3 +521,89 @@ tr:hover {
     font-weight: 600;
     white-space: nowrap;
 }
+
+/* Tabs UI */
+.profile-tabs {
+    display: flex;
+    gap: 10px;
+    border-bottom: 2px solid #E2E8F0;
+    margin-bottom: 20px;
+    overflow-x: auto;
+}
+.tab-btn {
+    background: transparent;
+    border: none;
+    padding: 10px 15px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px; /* Overlap border */
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.tab-btn:hover {
+    color: var(--primary-color);
+}
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* AI Keyword Badges */
+.keyword-badge {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    display: inline-block;
+    margin: 3px;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+.keyword-badge.strength.active {
+    background-color: #E6F4EF;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.keyword-badge.weakness.active {
+    background-color: #FEF3C7;
+    color: #B45309;
+    border-color: #F59E0B;
+}
+.keyword-badge:not(.active) {
+    background-color: #F1F5F9;
+    color: #94A3B8;
+    border-color: #CBD5E1;
+    text-decoration: line-through;
+}
+.keyword-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Risk Dropdown */
+.risk-dropdown-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.risk-dropdown-item:last-child {
+    border-bottom: none;
+}
+.risk-dropdown-item:hover {
+    background-color: #F8FAFC;
+}
+.risk-dropdown-item strong {
+    color: #E53E3E;
+    display: block;
+    margin-bottom: 4px;
+}
+.risk-dropdown-item span {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}

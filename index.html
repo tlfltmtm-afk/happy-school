@@ -148,6 +148,10 @@
                             <h3>학교생활 적응력 분포 (막대형)</h3>
                             <div class="canvas-wrapper"><canvas id="classBarChart"></canvas></div>
                         </div>
+                        <div class="chart-card" style="grid-column: 1 / -1; margin-top:20px;">
+                            <h3>학급 다중지능 평균 분포 (방사형)</h3>
+                            <div class="canvas-wrapper"><canvas id="classMiChart"></canvas></div>
+                        </div>
                     </div>
                     <div class="chart-card mbti-card">
                         <h3>학급 MBTI 성향 분포</h3>
@@ -167,30 +171,90 @@
 
             <!-- 5. 개인별 맞춤 컨설팅 -->
             <section id="personal-stats" class="page-section">
-                <header>
-                    <h1>개인별 맞춤 컨설팅</h1>
-                    <p>분석할 학생을 아래 목록에서 선택해주세요.</p>
-                    <select id="studentSelect" class="form-select">
-                        <option value="">-- 학생을 선택하세요 --</option>
-                    </select>
+                <header style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <h1>개인별 맞춤 컨설팅</h1>
+                        <p>분석할 학생을 아래 목록에서 선택해주세요.</p>
+                        <select id="studentSelect" class="form-select" style="margin-top:10px;">
+                            <option value="">-- 학생을 선택하세요 --</option>
+                        </select>
+                    </div>
+                    <div class="risk-nav-wrapper" style="position:relative;">
+                        <button id="btnRiskNav" class="btn btn-outline-danger btn-sm" onclick="toggleRiskDropdown()">
+                            <i class="fa-solid fa-triangle-exclamation"></i> 요주의 학생목록 <i class="fa-solid fa-caret-down"></i>
+                        </button>
+                        <div id="riskDropdown" class="risk-dropdown" style="display:none; position:absolute; right:0; top:40px; width:300px; background:white; border:1px solid #ddd; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-radius:8px; z-index:100; max-height:400px; overflow-y:auto; padding:10px;">
+                            <!-- JS Injection -->
+                        </div>
+                    </div>
                 </header>
-                <div id="studentProfile" class="profile-card" style="display: none;">
+
+                <div id="studentProfile" class="profile-card" style="display: none; margin-top:20px;">
                     <div class="profile-header">
                         <div class="avatar"><i class="fa-solid fa-face-smile"></i></div>
                         <div class="info">
                             <h2 id="studentName">김학생</h2>
                             <p id="studentMeta">6학년 1반 1번</p>
-                            <div class="badges">
-                                <span class="badge" id="studentMbti">MBTI: ENTP</span>
+                            <div class="badges" id="studentMbtiContainer" style="margin-top:10px;">
+                                <span class="badge" id="studentMbti" style="font-size:1.2rem; font-weight:800; padding:5px 10px;">MBTI: ENTP</span>
                             </div>
                         </div>
                     </div>
-                    <div class="profile-content">
-                        <div class="chart-container">
-                            <canvas id="studentRadarChart"></canvas>
+                    <div class="profile-body" style="margin-top:20px;">
+                        <!-- TABS HEADER -->
+                        <div class="profile-tabs" style="display:flex; gap:10px; border-bottom:2px solid #E2E8F0; margin-bottom:20px;">
+                            <button class="tab-btn active" data-tab="tab-happiness" onclick="switchTab('tab-happiness')">행복 6요소</button>
+                            <button class="tab-btn" data-tab="tab-mbti" onclick="switchTab('tab-mbti')">MBTI</button>
+                            <button class="tab-btn" data-tab="tab-mi" onclick="switchTab('tab-mi')">다중지능</button>
+                            <button class="tab-btn" data-tab="tab-adapt" onclick="switchTab('tab-adapt')">학교적응</button>
+                            <button class="tab-btn" data-tab="tab-survey" onclick="switchTab('tab-survey')">설문응답</button>
                         </div>
-                        <div class="summary-text" id="studentSummary">
-                            <!-- JS Injection -->
+
+                        <!-- TABS CONTENT -->
+                        <div class="tab-content-container">
+                            <div id="tab-happiness" class="tab-pane active" style="display:block;">
+                                <div class="charts-wrap" style="flex-direction:row; gap:20px;">
+                                    <div class="chart-card" style="flex:1;">
+                                        <h3>행복 지수 (방사형)</h3>
+                                        <div class="canvas-wrapper"><canvas id="studentRadarChart"></canvas></div>
+                                    </div>
+                                    <div class="text-card" id="studentSummary" style="flex:1;">
+                                        <!-- JS Injection -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="tab-mbti" class="tab-pane" style="display:none;">
+                                <div class="chart-card">
+                                    <h3>MBTI 심층 분석</h3>
+                                    <div id="studentMbtiDetail" style="margin-top:15px; line-height:1.6;">
+                                        <!-- JS Injection -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="tab-mi" class="tab-pane" style="display:none;">
+                                <div class="chart-card">
+                                    <h3>다중지능 프로파일</h3>
+                                    <div class="canvas-wrapper"><canvas id="studentMiChart"></canvas></div>
+                                </div>
+                            </div>
+                            
+                            <div id="tab-adapt" class="tab-pane" style="display:none;">
+                                <div class="chart-card">
+                                    <h3>학교적응력 지표</h3>
+                                    <div class="canvas-wrapper"><canvas id="studentAdaptChart"></canvas></div>
+                                </div>
+                            </div>
+                            
+                            <div id="tab-survey" class="tab-pane" style="display:none;">
+                                <div class="chart-card">
+                                    <h3>설문조사 원본 응답</h3>
+                                    <div id="studentSurveyRaw" style="margin-top:15px; font-size:0.95rem;">
+                                        <!-- JS Injection -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -198,36 +262,47 @@
 
             <!-- 6. AI 행동발달 생성기 -->
             <section id="ai-generator" class="page-section">
-                <header>
-                    <h1>AI 행동발달문장 생성기</h1>
-                    <p>학생별로 추천된 키워드를 바탕으로 학교생활기록부용 평어를 자동 생성합니다.</p>
-                    <div class="action-buttons" style="margin-top:15px;">
-                        <button id="generateAllBtn" class="btn btn-primary"><i
-                                class="fa-solid fa-wand-magic-sparkles"></i> 전체 학생 일괄 생성</button>
-                        <button id="copyAllBtn" class="btn btn-secondary"><i class="fa-solid fa-copy"></i> 전체
-                            복사</button>
-                        <button id="downloadExcelBtn" class="btn btn-success"><i class="fa-solid fa-file-excel"></i> 엑셀로
-                            다운로드</button>
+                <header style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:15px;">
+                    <div>
+                        <h1>AI 행동발달문장 생성기</h1>
+                        <p>추출된 키워드를 토글(클릭)하여 원하는 단어만으로 맞춤 프롬프트를 만드세요.</p>
+                    </div>
+                    <div class="ai-links" style="display:flex; gap:8px;">
+                        <a href="https://chat.openai.com" target="_blank" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-comment-dots"></i> ChatGPT</a>
+                        <a href="https://claude.ai" target="_blank" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-robot"></i> Claude</a>
+                        <a href="https://gemini.google.com" target="_blank" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-sparkles"></i> Gemini</a>
+                        <a href="https://grok.com" target="_blank" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-bolt"></i> Grok</a>
                     </div>
                 </header>
-                <div class="table-container" style="margin-top: 25px;">
-                    <table id="aiDataTable">
+
+                <div class="controls-bar" style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#F8FAFC; padding:15px; border-radius:8px;">
+                    <button class="btn btn-primary" id="copyAllPromptBtn"><i class="fa-solid fa-copy"></i> 전체 학생 수동생성용 명령어 엑셀 복사</button>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="password" id="apiKeyInput" placeholder="API Key (선택, 바로생성시 필요)" style="padding:8px; border:1px solid #CBD5E1; border-radius:6px; width:220px;">
+                        <button class="btn btn-primary" id="generateAllBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> 자동 전체 생성</button>
+                    </div>
+                </div>
+
+                <div class="table-container" style="margin-top: 25px; overflow-x:auto;">
+                    <p style="margin-bottom: 10px; font-size:0.9rem; color:var(--info);"><i class="fa-solid fa-mouse-pointer"></i> <strong>배지(키워드)를 클릭해 보세요!</strong> 프롬프트에 포함할 키워드를 끄고 켤 수 있습니다. (회색=제외됨)</p>
+                    <table id="aiDataTable" style="min-width: 1000px;">
                         <thead>
                             <tr>
-                                <th width="5%">번호</th>
-                                <th width="10%">이름/소속</th>
-                                <th width="20%">추출된 강점 키워드</th>
-                                <th width="15%">추출된 보완 키워드</th>
-                                <th width="40%">AI 평어 생성 결과</th>
-                                <th width="10%">작업</th>
+                                <th width="4%">No</th>
+                                <th width="8%">학생</th>
+                                <th width="28%">선택된 강점 키워드 (15개 내외)</th>
+                                <th width="15%">선택된 보완 키워드 (5개 이하)</th>
+                                <th width="12%">수동 생성 복사</th>
+                                <th width="25%">자동 생성 결과</th>
+                                <th width="8%">자동생성 버튼</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="6" class="empty-state">
+                                <td colspan="7" class="empty-state">
                                     <i class="fa-solid fa-inbox fa-3x"
                                         style="color:var(--border-color);margin-bottom:15px;"></i>
-                                    <br>먼저 [데이터 입력] 메뉴에서 응답 결과를 입력해주세요.
+                                    <br>먼저 [데이터 파싱] 메뉴에서 응답 결과를 분석해주세요.
                                 </td>
                             </tr>
                         </tbody>
