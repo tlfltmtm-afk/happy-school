@@ -139,19 +139,17 @@
                     <p>우리 반 전체 학생들의 경향성과 항목별 평균을 확인하실 수 있습니다.</p>
                 </header>
                 <div class="charts-wrap">
-                    <div class="charts-grid-small">
-                        <div class="chart-card">
-                            <h3>학급 행복 요소 평균 (방사형)</h3>
-                            <div class="canvas-wrapper"><canvas id="classRadarChart"></canvas></div>
-                        </div>
-                        <div class="chart-card">
-                            <h3>학교생활 적응력 분포 (막대형)</h3>
-                            <div class="canvas-wrapper"><canvas id="classBarChart"></canvas></div>
-                        </div>
-                        <div class="chart-card" style="grid-column: 1 / -1; margin-top:20px;">
-                            <h3>학급 다중지능 평균 분포 (방사형)</h3>
-                            <div class="canvas-wrapper"><canvas id="classMiChart"></canvas></div>
-                        </div>
+                    <div class="chart-card">
+                        <h3>학급 행복 요소 평균 (방사형)</h3>
+                        <div class="canvas-wrapper"><canvas id="classRadarChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>학교생활 적응력 분포 (막대형)</h3>
+                        <div class="canvas-wrapper"><canvas id="classBarChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>학급 다중지능 평균 분포 (방사형)</h3>
+                        <div class="canvas-wrapper"><canvas id="classMiChart"></canvas></div>
                     </div>
                     <div class="chart-card mbti-card">
                         <h3>학급 MBTI 성향 분포</h3>
@@ -213,12 +211,12 @@
                         <!-- TABS CONTENT -->
                         <div class="tab-content-container">
                             <div id="tab-happiness" class="tab-pane active" style="display:block;">
-                                <div class="charts-wrap" style="flex-direction:row; gap:20px;">
-                                    <div class="chart-card" style="flex:1;">
+                                <div class="charts-wrap">
+                                    <div class="chart-card">
                                         <h3>행복 지수 (방사형)</h3>
                                         <div class="canvas-wrapper"><canvas id="studentRadarChart"></canvas></div>
                                     </div>
-                                    <div class="text-card" id="studentSummary" style="flex:1;">
+                                    <div class="text-card" id="studentSummary">
                                         <!-- JS Injection -->
                                     </div>
                                 </div>

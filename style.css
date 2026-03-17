@@ -297,15 +297,13 @@ tr:hover {
 
 /* Charts Layout Updates */
 .charts-wrap {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 30px;
 }
 
 .charts-grid-small {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
+    display: contents;
 }
 
 .canvas-wrapper {

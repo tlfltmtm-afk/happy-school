@@ -170,6 +170,7 @@ window.generateManualPromptText = function(index) {
     const strengthNodes = document.querySelectorAll(`#ai-strengths-${index} .keyword-badge.strength.active`);
     const weaknessNodes = document.querySelectorAll(`#ai-weaknesses-${index} .keyword-badge.weakness.active`);
     
+    // `.innerText` will extract the text of only the nodes that had the `.active` class because of the selector above.
     const activeStrengths = Array.from(strengthNodes).map(n => n.innerText);
     const activeWeaknesses = Array.from(weaknessNodes).map(n => n.innerText);
     
@@ -206,7 +207,11 @@ window.generateAiText = function(index) {
         // Mock generation using active badges
         resultCell.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:var(--primary-color)"></i> 생성 중...`;
         setTimeout(() => {
-            const sampleStrengths = activeStrengths.slice(0, 3).join(', ');
+            let sampleStrengths = "특별한 강점";
+            if(activeStrengths.length > 0) {
+                // If there are exactly 1 or 2 strengths, just use them. Otherwise, take up to 3.
+                sampleStrengths = activeStrengths.slice(0, 3).join(', ');
+            }
             const mockText = `평소 ${sampleStrengths} 등의 긍정적 측면이 돋보이며 학급 분위기를 쇄신함. 앞으로의 성장이 더욱 기대되는 모범적인 학생임.`;
             row._aiGenerated = mockText;
             resultCell.innerText = mockText;
