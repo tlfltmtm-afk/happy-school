@@ -201,47 +201,95 @@
                     <div class="profile-body" style="margin-top:20px;">
                         <!-- TABS HEADER -->
                         <div class="profile-tabs" style="display:flex; gap:10px; border-bottom:2px solid #E2E8F0; margin-bottom:20px;">
-                            <button class="tab-btn active" data-tab="tab-happiness" onclick="switchTab('tab-happiness')">행복 6요소</button>
+                            <button class="tab-btn active" data-tab="tab-summary" onclick="switchTab('tab-summary')">총평</button>
+                            <button class="tab-btn" data-tab="tab-happiness" onclick="switchTab('tab-happiness')">행복 6요소</button>
                             <button class="tab-btn" data-tab="tab-mbti" onclick="switchTab('tab-mbti')">MBTI</button>
                             <button class="tab-btn" data-tab="tab-mi" onclick="switchTab('tab-mi')">다중지능</button>
                             <button class="tab-btn" data-tab="tab-adapt" onclick="switchTab('tab-adapt')">학교적응</button>
-                            <button class="tab-btn" data-tab="tab-survey" onclick="switchTab('tab-survey')">설문응답</button>
+                            <button class="tab-btn" data-tab="tab-survey" onclick="switchTab('tab-survey')">전체 설문조사 응답</button>
                         </div>
 
                         <!-- TABS CONTENT -->
                         <div class="tab-content-container">
-                            <div id="tab-happiness" class="tab-pane active" style="display:block;">
+                            <div id="tab-summary" class="tab-pane active" style="display:block;">
+                                <div class="charts-wrap" style="grid-template-columns: 1fr;">
+                                    <div class="text-card" id="studentSummary">
+                                        <!-- JS Injection -->
+                                    </div>
+                                    <div class="chart-card ai-consult-card" style="margin-top:20px; border-color:var(--primary-color); border-width: 2px;">
+                                        <h3>🤖 AI 학급 맞춤 컨설턴트</h3>
+                                        <p style="text-align:center; color:var(--text-muted); font-size:0.95rem; margin-bottom:15px;">해당 학생의 정보와 설문 응답을 바탕으로 AI 컨설턴트와 지도 방안을 논의해 보세요.</p>
+                                        <div style="background:#F8FAFC; padding:20px; border-radius:8px; border:1px solid #E2E8F0; display:flex; flex-direction:column; align-items:center;">
+                                            <button class="btn btn-primary btn-lg" onclick="startGeminiConsulting()" style="width:100%; max-width: 400px; justify-content:center; margin-bottom:10px;">
+                                                <i class="fa-solid fa-sparkles"></i> 제미나이(Gemini)로 컨설팅 시작하기
+                                            </button>
+                                            <p style="font-size:0.9rem; color:var(--text-muted); text-align:center; margin:0;">
+                                                <i class="fa-solid fa-circle-info"></i> 단추를 클릭하면 제미나이로 이동합니다. 붙여넣기(Ctrl+V) 하시면 컨설팅을 시작할 수 있습니다.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="tab-happiness" class="tab-pane" style="display:none;">
                                 <div class="charts-wrap">
                                     <div class="chart-card">
                                         <h3>행복 지수 (방사형)</h3>
                                         <div class="canvas-wrapper"><canvas id="studentRadarChart"></canvas></div>
                                     </div>
-                                    <div class="text-card" id="studentSummary">
-                                        <!-- JS Injection -->
+                                    <div class="chart-card">
+                                        <h3>행복 6요소 관련 설문 응답</h3>
+                                        <div id="studentHappinessRaw" style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                            <!-- JS Injection -->
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             
                             <div id="tab-mbti" class="tab-pane" style="display:none;">
-                                <div class="chart-card">
-                                    <h3>MBTI 심층 분석</h3>
-                                    <div id="studentMbtiDetail" style="margin-top:15px; line-height:1.6;">
-                                        <!-- JS Injection -->
+                                <div class="charts-wrap">
+                                    <div class="chart-card">
+                                        <h3>MBTI 심층 분석</h3>
+                                        <div id="studentMbtiDetail" style="margin-top:15px; line-height:1.6;">
+                                            <!-- JS Injection -->
+                                        </div>
+                                    </div>
+                                    <div class="chart-card">
+                                        <h3>MBTI 관련 설문 응답</h3>
+                                        <div id="studentMbtiRaw" style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                            <!-- JS Injection -->
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             
                             <div id="tab-mi" class="tab-pane" style="display:none;">
-                                <div class="chart-card">
-                                    <h3>다중지능 프로파일</h3>
-                                    <div class="canvas-wrapper"><canvas id="studentMiChart"></canvas></div>
+                                <div class="charts-wrap">
+                                    <div class="chart-card">
+                                        <h3>다중지능 프로파일</h3>
+                                        <div class="canvas-wrapper"><canvas id="studentMiChart"></canvas></div>
+                                    </div>
+                                    <div class="chart-card">
+                                        <h3>다중지능 관련 설문 응답</h3>
+                                        <div id="studentMiRaw" style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                            <!-- JS Injection -->
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
                             <div id="tab-adapt" class="tab-pane" style="display:none;">
-                                <div class="chart-card">
-                                    <h3>학교적응력 지표</h3>
-                                    <div class="canvas-wrapper"><canvas id="studentAdaptChart"></canvas></div>
+                                <div class="charts-wrap">
+                                    <div class="chart-card">
+                                        <h3>학교적응력 지표</h3>
+                                        <div class="canvas-wrapper"><canvas id="studentAdaptChart"></canvas></div>
+                                    </div>
+                                    <div class="chart-card">
+                                        <h3>학교적응력 관련 설문 응답</h3>
+                                        <div id="studentAdaptRaw" style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                            <!-- JS Injection -->
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
