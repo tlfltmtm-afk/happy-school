@@ -32,10 +32,15 @@
                 <li data-target="personal-stats"><i class="fa-solid fa-user"></i> 개인별 맞춤 컨설팅</li>
                 <li data-target="ai-generator"><i class="fa-solid fa-wand-magic-sparkles"></i> AI 행동발달 생성기</li>
             </ul>
-            <div style="padding: 20px; border-top: 1px solid var(--border-color);">
-                <button class="btn btn-outline-primary" onclick="openApiModal()" style="width: 100%; justify-content: center; font-size: 0.95rem;">
+            <div style="padding: 20px; border-top: 1px solid var(--border-color); display:flex; flex-direction:column; gap:10px;">
+                <button id="sidebarApiBtn" class="btn btn-outline-primary" onclick="openApiModal()" style="width: 100%; justify-content: center; font-size: 0.95rem;">
                     <i class="fa-solid fa-key"></i> 내 API Key 설정
                 </button>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="exportData()" style="flex:1; justify-content:center; padding:8px 0;" title="전체 데이터(분석,결과,채팅 등)를 백업합니다"><i class="fa-solid fa-download"></i> 백업</button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('importFile').click()" style="flex:1; justify-content:center; padding:8px 0;" title="기존 백업 파일을 불러옵니다"><i class="fa-solid fa-upload"></i> 불러오기</button>
+                    <input type="file" id="importFile" style="display:none;" accept=".json" onchange="importData(event)">
+                </div>
             </div>
         </nav>
 
@@ -193,7 +198,8 @@
                             <select id="studentSelect" class="form-select" style="margin-top:0;">
                                 <option value="">-- 학생을 선택하세요 --</option>
                             </select>
-                            <button class="btn btn-outline-tertiary btn-sm" onclick="window.print()"><i class="fa-solid fa-file-pdf"></i> 개인 리포트 PDF 저장</button>
+                            <button class="btn btn-outline-tertiary btn-sm" onclick="window.print()"><i class="fa-solid fa-file-pdf"></i> 현재 학생 리포트 저장</button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="downloadAllPersonalReports()"><i class="fa-solid fa-file-pdf"></i> 전체 학생 일괄 저장</button>
                         </div>
                     </div>
                     <div class="risk-nav-wrapper" style="position:relative;">
@@ -345,17 +351,37 @@
                     <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start;">
                         <div style="flex:1; min-width:200px;">
                             <label style="display:block; font-weight:600; margin-bottom:5px;">대상 학년 (미입력시 메타데이터 기반)</label>
-                            <input type="text" id="aiGradeSetup" class="form-select" style="width:100%; margin-top:0; padding:8px;" placeholder="예: 초등학교 6학년">
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="aiGradeSetup" list="grade-list" class="form-select" style="width:100%; margin-top:0; padding:8px;" placeholder="선택 또는 직접 입력 (예: 초등학교 6학년)">
+                                <datalist id="grade-list">
+                                    <option value="초등학교 1학년">
+                                    <option value="초등학교 2학년">
+                                    <option value="초등학교 3학년">
+                                    <option value="초등학교 4학년">
+                                    <option value="초등학교 5학년">
+                                    <option value="초등학교 6학년">
+                                    <option value="중학교 1학년">
+                                    <option value="중학교 2학년">
+                                    <option value="중학교 3학년">
+                                    <option value="고등학교 1학년">
+                                    <option value="고등학교 2학년">
+                                    <option value="고등학교 3학년">
+                                </datalist>
+                            </div>
                         </div>
                         <div style="flex:1; min-width:200px;" id="aiLengthContainer">
                             <label style="display:block; font-weight:600; margin-bottom:5px;">기본 문장 분량 (자)</label>
-                            <input type="number" id="aiLengthSetup" class="form-select" style="width:100%; margin-top:0; padding:8px;" value="300">
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustAiLength(-50)" style="padding:8px 12px;"><i class="fa-solid fa-minus"></i></button>
+                                <input type="number" id="aiLengthSetup" class="form-select" style="flex:1; margin-top:0; padding:8px; text-align:center;" value="300" onchange="syncTerm1Length()">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustAiLength(50)" style="padding:8px 12px;"><i class="fa-solid fa-plus"></i></button>
+                            </div>
                         </div>
                     </div>
                     <div style="margin-top:15px; border-top:1px dashed var(--border-color); padding-top:15px;">
                         <label style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; color:var(--text-main);">
                             <input type="checkbox" id="aiSecondSemesterCheck" onchange="toggleSecondSemester()" style="width:18px; height:18px; accent-color:var(--primary-color);"> 
-                            <span class="badge" style="background:#FEF3C7; color:#B45309;">New</span> 2학기용 미리 동시 생성 (1학기와 내용 겹치지 않도록 분리 생산)
+                            <span class="badge" style="background:#FEF3C7; color:#B45309;">New</span> 2학기용 미리 생성 (1학기와 내용 겹치지 않도록 분리 생산)
                         </label>
                         <div id="secondSemesterSetup" style="display:none; margin-top:10px; background:#F8FAFC; padding:15px; border-radius:8px; border:1px solid var(--border-color);">
                             <div style="display:flex; gap:15px;">
@@ -377,12 +403,12 @@
                 </div>
 
                 <div class="controls-bar" style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#F8FAFC; padding:15px; border-radius:8px;">
-                    <button class="btn btn-outline-primary" id="copyAllPromptBtn"><i class="fa-solid fa-copy"></i> 전체 학생 수동생성용 명령어 엑셀 복사</button>
                     <div style="display:flex; gap:10px; align-items:center;">
-                        <button class="btn btn-outline-success" onclick="downloadAiResults()"><i class="fa-solid fa-file-excel"></i> 자동 생성 결과 엑셀 다운로드</button>
+                        <button class="btn btn-outline-primary" id="copyAllPromptBtn"><i class="fa-solid fa-copy"></i> 전체 학생 수동생성용 명령어 엑셀 복사</button>
                         <span id="apiStatusBadge" class="badge" style="background:#E2E8F0; color:var(--text-muted); border:1px solid #CBD5E1;">API 미설정</span>
                         <button class="btn btn-primary" id="generateAllBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> 글로벌 API로 전체 자동 생성</button>
                     </div>
+                    <button class="btn btn-outline-success" onclick="downloadAiResults()"><i class="fa-solid fa-file-excel"></i> 엑셀 다운로드</button>
                 </div>
 
                 <div class="table-container" style="margin-top: 25px; overflow-x:auto;">
@@ -394,15 +420,23 @@
                                 <th width="8%">학생</th>
                                 <th width="28%">
                                     선택된 강점 키워드 (15개 내외)
-                                    <button class="btn btn-outline-primary btn-sm" onclick="promptRandomKeywords('strength')" style="font-size:0.75rem; padding:2px 6px; margin-left:5px; border-radius:4px;" title="지정한 개수만큼 랜덤 선택"><i class="fa-solid fa-dice"></i></button>
+                                    <div style="display:flex; align-items:center; gap:5px; margin-top:5px; font-weight:normal;">
+                                        <input type="number" id="randomCountStrength" class="form-select" style="width:60px; padding:2px 5px; margin:0; font-size:0.85rem;" placeholder="개수" value="10">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="promptRandomKeywords('strength')" style="font-size:0.75rem; padding:4px 8px;" title="지정한 개수만큼 랜덤 선택"><i class="fa-solid fa-dice"></i></button>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="selectAllKeywords('strength')" style="font-size:0.75rem; padding:4px 8px;" title="전체 선택"><i class="fa-solid fa-check-double"></i></button>
+                                    </div>
                                 </th>
                                 <th width="15%">
                                     선택된 보완 키워드 (5개 이하)
-                                    <button class="btn btn-outline-secondary btn-sm" onclick="promptRandomKeywords('weakness')" style="font-size:0.75rem; padding:2px 6px; margin-left:5px; border-radius:4px;" title="지정한 개수만큼 랜덤 선택"><i class="fa-solid fa-dice"></i></button>
+                                    <div style="display:flex; align-items:center; gap:5px; margin-top:5px; font-weight:normal;">
+                                        <input type="number" id="randomCountWeakness" class="form-select" style="width:60px; padding:2px 5px; margin:0; font-size:0.85rem;" placeholder="개수" value="2">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="promptRandomKeywords('weakness')" style="font-size:0.75rem; padding:4px 8px;" title="지정한 개수만큼 랜덤 선택"><i class="fa-solid fa-dice"></i></button>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="selectAllKeywords('weakness')" style="font-size:0.75rem; padding:4px 8px;" title="전체 선택"><i class="fa-solid fa-check-double"></i></button>
+                                    </div>
                                 </th>
                                 <th width="12%">수동 생성 복사</th>
-                                <th width="25%">자동 생성 결과</th>
                                 <th width="8%">자동생성 버튼</th>
+                                <th width="25%">자동 생성 결과</th>
                             </tr>
                         </thead>
                         <tbody>

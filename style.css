@@ -679,27 +679,28 @@ tr:hover {
     opacity: 1;
 }
 
-/* Chat Overlay Interface (KakaoTalk Style) */
+/* Chat Overlay Interface (Center Modal Style) */
 .chat-overlay {
     position: fixed;
-    bottom: 30px;
-    right: 40px;
-    width: 400px;
-    height: 600px;
-    max-height: 80vh;
-    z-index: 1000;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 650px;
+    height: 75vh;
+    max-height: 800px;
+    z-index: 10000;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
     border-radius: 16px;
     overflow: hidden;
     background-color: #b2c7d9; /* 카카오톡 배경색과 유사한 색상 */
     display: flex;
     flex-direction: column;
-    animation: slideUp 0.3s ease-out;
+    animation: fadeInModal 0.3s ease-out;
 }
 
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+@keyframes fadeInModal {
+    from { opacity: 0; transform: translate(-50%, -45%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
 }
 
 .chat-container {
@@ -844,8 +845,9 @@ tr:hover {
 
 @media (max-width: 768px) {
     .chat-overlay {
-        bottom: 0;
-        right: 0;
+        top: 0;
+        left: 0;
+        transform: none;
         width: 100%;
         height: 100%;
         max-height: 100%;
@@ -855,42 +857,104 @@ tr:hover {
 
 /* Print Styles for PDF Download */
 @media print {
-    body {
-        background-color: white !important;
+    /* 기본 여백/배경 제거 및 A4 사이즈에 맞춤 */
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
     }
+    html, body {
+        background-color: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        font-size: 11pt !important;
+    }
+    .app-container {
+        display: block !important;
+    }
+    
+    /* 불필요 UI 요소 숨김 */
     .sidebar, .btn, .risk-nav-wrapper, #aiSiteModal, #chatOverlay, #apiSetupModal, header p, .ai-setup-card, .controls-bar {
         display: none !important;
     }
+    
+    /* 컨텐츠 영역 전체 너비 사용 */
     .main-content {
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
     }
+    
+    /* 활성화된 섹션만 출력 (페이지 잘림 방지) */
+    .page-section {
+        display: none !important;
+    }
     .page-section.active {
         display: block !important;
-        page-break-after: auto;
+        page-break-after: avoid;
     }
-    .chart-card {
-        box-shadow: none !important;
-        border: 1px solid #ccc !important;
-        page-break-inside: avoid;
-        margin-bottom: 20px;
+    
+    /* 학급 전체 리포트를 한 페이지에 맞추기 위한 그리드 및 크기 조정 */
+    #class-stats .charts-wrap {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 15px !important;
     }
-    .charts-wrap {
-        display: block !important;
-    }
-    .charts-wrap > div {
-        margin-bottom: 20px;
-    }
-    .profile-tabs {
-        display: none !important;
-    }
-    .tab-content-container .tab-pane {
+    
+    /* 개인 리포트 탭 내용 모두 표시 및 레이아웃 재구성 */
+    #personal-stats .tab-content-container .tab-pane {
         display: block !important; 
         page-break-inside: avoid;
-        margin-bottom: 30px;
+        margin-bottom: 20px !important;
     }
-    .ai-consult-card {
+    
+    /* 개인 리포트 - 총평 영역 강제 표시 및 그리드 조정 */
+    #tab-summary {
+        display: block !important;
+    }
+    #tab-summary .charts-wrap {
+        display: block !important;
+    }
+    
+    .chart-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        page-break-inside: avoid;
+        padding: 15px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .chart-card h3 {
+        margin-bottom: 10px !important;
+        font-size: 1rem !important;
+    }
+
+    .canvas-wrapper {
+        max-width: 250px !important;
+    }
+    
+    /* 프로필 카드 표시 영역 간소화 */
+    .profile-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        margin-top: 10px !important;
+        break-inside: avoid;
+    }
+    .profile-tabs, .ai-consult-card {
         display: none !important;
+    }
+    
+    /* 헤더 텍스트 사이즈 조정 */
+    header h1 {
+        font-size: 1.5rem !important;
+        margin-bottom: 5px !important;
+    }
+    
+    .mbti-container {
+        gap: 8px !important;
+    }
+    .mbti-bar-wrapper {
+        height: 20px !important;
     }
 }

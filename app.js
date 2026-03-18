@@ -211,10 +211,10 @@ function populateAiTable() {
             <td id="ai-strengths-${index}">${strengthsHtml}</td>
             <td id="ai-weaknesses-${index}">${weaknessesHtml}</td>
             <td><button class="btn btn-outline-primary btn-sm" onclick="copyManualPrompt(${index})" style="width:100%"><i class="fa-solid fa-copy"></i> 수동 복사</button></td>
+            <td><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})"><i class="fa-solid fa-robot"></i></button></td>
             <td id="ai-result-${index}" style="font-size:0.95rem; line-height:1.5; color:var(--text-muted);">
                 [대기중] API Key 입력 후 클릭
             </td>
-            <td><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})"><i class="fa-solid fa-robot"></i></button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -750,6 +750,19 @@ function updateApiStatusBadge() {
         badge.style.color = "var(--text-muted)";
         badge.style.borderColor = "#CBD5E1";
     }
+
+    const sidebarBtn = document.getElementById('sidebarApiBtn');
+    if(sidebarBtn) {
+        if(globalApiKey) {
+            sidebarBtn.className = "btn btn-outline-tertiary";
+            sidebarBtn.innerHTML = `<i class="fa-solid fa-key"></i> 내 API Key 설정 (등록완료)`;
+            sidebarBtn.style.backgroundColor = "rgba(244, 196, 118, 0.1)";
+        } else {
+            sidebarBtn.className = "btn btn-outline-primary";
+            sidebarBtn.innerHTML = `<i class="fa-solid fa-key"></i> 내 API Key 설정`;
+            sidebarBtn.style.backgroundColor = "transparent";
+        }
+    }
 }
 
 window.openApiModal = function() {
@@ -799,11 +812,13 @@ window.callGeminiApi = async function(prompt) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contents: contents })
+    }).catch(e => {
+        throw new Error("네트워크 연결 실패(교내망 등 보안 프로그램 차단) 또는 API 키 오류일 수 있습니다. 외부망에서 접속해보세요. 원문: " + e.message);
     });
     
     if(!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.error?.message || "알 수 없는 오류 발생");
+        throw new Error(errData.error?.message || "알 수 없는 API 서버 오류 발생");
     }
     
     const data = await response.json();
@@ -1188,11 +1203,13 @@ window.toggleSecondSemester = function() {
 
 // Random keywords picker
 window.promptRandomKeywords = function(type) {
-    if(parsedData.length === 0) return alert("데이터가 없습니다.");
+    if(parsedData.length === 0) return alert("데이터가 없습니다. 먼저 분석해주세요.");
     
-    const countStr = prompt(`자동으로 랜덤 선택할 ${type === 'strength' ? '강점' : '보완'} 키워드 개수를 입력하세요 (예: 5)`, type === 'strength' ? "10" : "2");
-    if(!countStr) return;
-    const count = parseInt(countStr, 10);
+    const inputId = type === 'strength' ? 'randomCountStrength' : 'randomCountWeakness';
+    const inputObj = document.getElementById(inputId);
+    if(!inputObj) return;
+    
+    let count = parseInt(inputObj.value, 10);
     if(isNaN(count) || count < 0) return alert("올바른 숫자를 입력하세요.");
     
     let typeClass = type === 'strength' ? 'strength' : 'weakness';
@@ -1213,6 +1230,39 @@ window.promptRandomKeywords = function(type) {
             }
         });
     });
+};
+
+// Select all keywords
+window.selectAllKeywords = function(type) {
+    if(parsedData.length === 0) return;
+    let typeClass = type === 'strength' ? 'strength' : 'weakness';
+    parsedData.forEach((row, index) => {
+        const badgesContainer = document.getElementById(type === 'strength' ? `ai-strengths-${index}` : `ai-weaknesses-${index}`);
+        if(!badgesContainer) return;
+        const badges = Array.from(badgesContainer.querySelectorAll(`.keyword-badge.${typeClass}`));
+        badges.forEach(badge => badge.classList.add('active'));
+    });
+};
+
+// Adjust AI Length setup
+window.adjustAiLength = function(delta) {
+    const input = document.getElementById('aiLengthSetup');
+    if(input) {
+        let val = parseInt(input.value, 10);
+        if(isNaN(val)) val = 300;
+        val += delta;
+        if(val < 50) val = 50; 
+        input.value = val;
+        syncTerm1Length();
+    }
+};
+
+window.syncTerm1Length = function() {
+    const input = document.getElementById('aiLengthSetup');
+    const term1 = document.getElementById('aiTerm1Length');
+    if(input && term1) {
+        term1.value = input.value;
+    }
 };
 
 // Download AI Generated Results as CSV
@@ -1252,5 +1302,179 @@ window.downloadAiResults = function() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+};
+
+// Batch Print All Personal Reports
+window.downloadAllPersonalReports = function() {
+    if(parsedData.length === 0) return alert("데이터가 없습니다.");
+    
+    if(!confirm("모든 학생의 개인 리포트를 일괄 출력(PDF 저장) 하시겠습니까?\n\n생성 시 브라우저 인쇄 창이 나타나며, '[PDF로 저장]'을 선택해주세요.")) {
+        return;
+    }
+
+    // Save original state
+    const originalSection = document.querySelector('.page-section.active');
+    const originalSelectIndex = document.getElementById('studentSelect').value;
+
+    // Temporary container for all reports
+    const printContainer = document.createElement('div');
+    printContainer.id = 'batch-print-container';
+    document.body.appendChild(printContainer);
+
+    // Get the base template of the personal stats section
+    const personalStatsTemplate = document.getElementById('personal-stats');
+    const originalDisplay = personalStatsTemplate.style.display;
+    personalStatsTemplate.style.display = 'block';
+
+    // Hide main content for print
+    const appContainer = document.querySelector('.app-container');
+    appContainer.style.display = 'none';
+
+    // Helper function to delay and ensure charts render
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    const renderAll = async () => {
+        for(let i = 0; i < parsedData.length; i++) {
+            // Render specific student
+            renderStudentProfile(i);
+            
+            // Allow time for charts to render and animations to finish
+            await delay(500);
+
+            // Clone the rendered student profile card
+            const profileCard = document.getElementById('studentProfile');
+            if(profileCard) {
+                const clone = profileCard.cloneNode(true);
+                // Ensure the cloned node is visible and has page break
+                clone.style.display = 'block';
+                clone.style.pageBreakAfter = 'always';
+                clone.style.pageBreakInside = 'avoid';
+                
+                // Unfortunately, canvas elements are not cloned properly by wrapper.cloneNode(true)
+                // We need to convert canvas to image for printing
+                const originalCanvases = profileCard.querySelectorAll('canvas');
+                const clonedCanvases = clone.querySelectorAll('canvas');
+                
+                originalCanvases.forEach((canvas, idx) => {
+                    const img = document.createElement('img');
+                    img.src = canvas.toDataURL('image/png');
+                    img.style.width = '100%';
+                    img.style.maxWidth = canvas.style.maxWidth || '350px';
+                    
+                    // Replace canvas with image in clone
+                    if(clonedCanvases[idx] && clonedCanvases[idx].parentNode) {
+                        clonedCanvases[idx].parentNode.replaceChild(img, clonedCanvases[idx]);
+                    }
+                });
+
+                printContainer.appendChild(clone);
+            }
+        }
+
+        // Trigger Print
+        window.print();
+
+        // Restore everything afterwards
+        document.body.removeChild(printContainer);
+        appContainer.style.display = 'flex';
+        personalStatsTemplate.style.display = originalDisplay;
+        
+        if (originalSelectIndex !== "") {
+            renderStudentProfile(originalSelectIndex);
+            document.getElementById('studentSelect').value = originalSelectIndex;
+        } else {
+            document.getElementById('studentProfile').style.display = 'none';
+        }
+    };
+
+    renderAll();
+};
+
+// Data Backup (Export/Download JSON)
+window.exportData = function() {
+    const backupData = {
+        timestamp: new Date().toISOString(),
+        parsedData: parsedData,
+        chatHistory: chatHistory,
+        uiPrefs: {
+            aiGradeSetup: document.getElementById('aiGradeSetup')?.value || '',
+            aiLengthSetup: document.getElementById('aiLengthSetup')?.value || '300',
+            aiTerm1Length: document.getElementById('aiTerm1Length')?.value || '200',
+            aiTerm2Length: document.getElementById('aiTerm2Length')?.value || '200',
+            aiSecondSemesterCheck: document.getElementById('aiSecondSemesterCheck')?.checked || false,
+            aiCustomRequest: document.getElementById('aiCustomRequest')?.value || ''
+        }
+    };
+
+    const dataStr = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `해피스쿨_백업데이터_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+// Data Import (Restore from JSON)
+window.importData = function(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const result = JSON.parse(e.target.result);
+            if(!result.parsedData || !Array.isArray(result.parsedData)) {
+                throw new Error("유효하지 않은 백업 파일 포맷입니다.");
+            }
+
+            // Restore Main Data
+            parsedData = result.parsedData;
+            chatHistory = result.chatHistory || [];
+
+            // Restore UI Prefs
+            if(result.uiPrefs) {
+                if(document.getElementById('aiGradeSetup')) document.getElementById('aiGradeSetup').value = result.uiPrefs.aiGradeSetup || '';
+                if(document.getElementById('aiLengthSetup')) document.getElementById('aiLengthSetup').value = result.uiPrefs.aiLengthSetup || '300';
+                if(document.getElementById('aiTerm1Length')) document.getElementById('aiTerm1Length').value = result.uiPrefs.aiTerm1Length || '200';
+                if(document.getElementById('aiTerm2Length')) document.getElementById('aiTerm2Length').value = result.uiPrefs.aiTerm2Length || '200';
+                if(document.getElementById('aiCustomRequest')) document.getElementById('aiCustomRequest').value = result.uiPrefs.aiCustomRequest || '';
+                
+                const secCheck = document.getElementById('aiSecondSemesterCheck');
+                if(secCheck) {
+                    secCheck.checked = result.uiPrefs.aiSecondSemesterCheck || false;
+                    const secContainer = document.getElementById('secondSemesterSetup');
+                    const basicLenContainer = document.getElementById('aiLengthContainer');
+                    if (secCheck.checked) {
+                        if(secContainer) secContainer.style.display = 'block';
+                        if(basicLenContainer) basicLenContainer.style.opacity = '0.5';
+                    } else {
+                        if(secContainer) secContainer.style.display = 'none';
+                        if(basicLenContainer) basicLenContainer.style.opacity = '1';
+                    }
+                }
+            }
+
+            // Re-render Views
+            renderPreviewTable();
+            renderClassConsulting();
+            initStudentSelect();
+            renderAiDataTable();
+            
+            document.querySelector('.preview-area').style.display = 'block';
+            alert("백업 데이터를 성공적으로 불러왔습니다!");
+            
+        } catch(err) {
+            alert("백업 파일 파싱 중 오류가 발생했습니다: " + err.message);
+        } finally {
+            // Reset input so the same file can be loaded again if needed
+            event.target.value = '';
+        }
+    };
+    reader.readAsText(file);
 };
 
