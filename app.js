@@ -829,6 +829,53 @@ window.openClassConsultingChat = function() {
     initChatOverlay();
 };
 
+window.startClassGeminiConsulting = function() {
+    if (parsedData.length === 0) return alert("데이터를 먼저 입력해주세요.");
+
+    const totalStudents = parsedData.length;
+    // Calculate simple class average strengths / weaknesses based on keyword frequencies
+    const allStrengths = {};
+    const allWeaknesses = {};
+    const allMbti = {};
+    
+    parsedData.forEach(row => {
+        if(row._mbti) {
+            allMbti[row._mbti] = (allMbti[row._mbti] || 0) + 1;
+        }
+        if(row._strengths) {
+            row._strengths.forEach(s => { allStrengths[s] = (allStrengths[s] || 0) + 1; });
+        }
+        if(row._weaknesses) {
+            row._weaknesses.forEach(w => { allWeaknesses[w] = (allWeaknesses[w] || 0) + 1; });
+        }
+    });
+
+    const topMbti = Object.entries(allMbti).sort((a,b) => b[1]-a[1]).slice(0,3).map(e=>e[0]).join(', ');
+    const topStrengths = Object.entries(allStrengths).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>e[0]).join(', ');
+    const topWeaknesses = Object.entries(allWeaknesses).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>e[0]).join(', ');
+
+    const prompt = `당신은 초등학교 학급 경영 및 학생 교육을 돕는 따뜻하고 전문적인 교육 AI 컨설턴트입니다.
+다음은 제가 맡고 있는 학급(${totalStudents}명)의 다면적 심리 및 학교생활 설문 종합 데이터 요약입니다.
+이를 분석하여, 활기차고 행복한 학급 문화를 만들기 위해 오늘 당장 제가 학급에서 실천할 수 있는 구체적인 학급 경영 및 지도 팁을 3가지 이상 제시해주세요.
+
+[학급 종합 요약 정보]
+- 총 인원: ${totalStudents}명
+- 학급 내 주요 순위 성향(MBTI): ${topMbti || '데이터 부족'}
+- 학급 전체에서 두드러지는 공통 강점들: ${topStrengths || '데이터 부족'}
+- 학급 전체에서 주의 깊게 살펴보고 보완해야 할 점들: ${topWeaknesses || '데이터 부족'}
+
+어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시고, 
+개별 학생이 아닌 '학급 전체'를 대상으로 한 학급 경영, 분위기 쇄신, 모둠 활동 구성 등에 관한 실질적인 아이디어에 초점을 맞춰주세요.`;
+
+    navigator.clipboard.writeText(prompt).then(() => {
+        alert("학급 전체 요약 정보와 컨설팅 프롬프트가 클립보드에 복사되었습니다.\\n\\n[확인]을 누르시면 제미나이(Gemini)로 이동합니다.\\n이동 후 채팅창에 붙여넣기(Ctrl+V) 하여 학급 상담을 시작하세요!");
+        window.open("https://gemini.google.com/app", "_blank");
+    }).catch(err => {
+        console.error('클립보드 복사 실패:', err);
+        alert("클립보드 복사에 실패했습니다. 브라우저 권한을 확인해주세요.");
+    });
+};
+
 window.startGeminiConsulting = function() {
     const studentIdx = document.getElementById('studentSelect').value;
     if (studentIdx === "") return alert("학생을 먼저 선택해주세요.");

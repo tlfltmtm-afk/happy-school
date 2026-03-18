@@ -144,9 +144,14 @@
                         <h1>학급 전체 컨설팅</h1>
                         <p>우리 반 전체 학생들의 경향성과 항목별 평균을 확인하실 수 있습니다.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="openClassConsultingChat()">
-                        <i class="fa-solid fa-comments"></i> AI 컨설턴트 학급 상담하기
-                    </button>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-primary" onclick="openClassConsultingChat()" style="background-color:#FDE047; color:#854D0E; border-color:#FACC15;">
+                            <i class="fa-solid fa-comments"></i> AI 컨설턴트와 상담
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="startClassGeminiConsulting()">
+                            <i class="fa-solid fa-window-restore"></i> 외부 제미나이(Gemini)로 이동하기
+                        </button>
+                    </div>
                 </header>
                 <div class="charts-wrap">
                     <div class="chart-card">
@@ -386,19 +391,29 @@
                         <button onclick="closeSurveyPreview()" class="btn btn-secondary">닫기</button>
                     </div>
                 </div>
+            </div> <!-- End of surveyPreviewModal -->
+
             <!-- API Setup Modal -->
-            <div id="apiSetupModal" class="modal-overlay" style="display:none; z-index: 2000;">
+            <div id="apiSetupModal" class="modal-overlay" style="display:none; z-index: 9999;">
                 <div class="modal-content" style="max-width: 500px; width: 90%;">
                     <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
                         <h2 style="margin: 0; font-size: 1.3rem;"><i class="fa-solid fa-key" style="color:var(--primary-color)"></i> 글로벌 API 키 설정</h2>
                         <button onclick="closeApiModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
                     </div>
                     <div class="modal-body">
+                        <div style="background:#F0FDF4; border:1px solid #BBF7D0; padding:15px; border-radius:8px; margin-bottom:15px; font-size:0.9rem; color:#166534;">
+                            <strong><i class="fa-solid fa-circle-question"></i> API 키 발급 방법 안내</strong>
+                            <ol style="margin-top:10px; padding-left:20px; line-height:1.6;">
+                                <li>구글 계정으로 로그인 후 <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#059669; font-weight:bold; text-decoration:underline;">Google AI Studio 발급 페이지 [클릭하여 이동]</a>에 접속합니다.</li>
+                                <li>좌측 상단 <strong>[Get API Key]</strong>를 클릭합니다.</li>
+                                <li><strong>[Create API key in real project]</strong> 버튼을 눌러 키를 생성/복사합니다.</li>
+                            </ol>
+                        </div>
                         <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
                             제미나이(Gemini) API 키를 입력하시면 앱 내에서 즉시 <strong>학급 상담, 개인 컨설팅, 행발 자동 생성</strong> 기능을 이용하실 수 있습니다.<br>
-                            <span style="color: #E53E3E; font-weight: bold;"><i class="fa-solid fa-triangle-exclamation"></i> 입력해주신 API 키는 선생님의 브라우저 메모리에만 일시적으로 유지되며, 서버나 그 어디에도 절대 저장되지 않습니다. (새로고침 시 초기화됨)</span>
+                            <span style="color: #E53E3E; font-weight: bold; margin-top:5px; display:inline-block;"><i class="fa-solid fa-triangle-exclamation"></i> 입력해주신 API 키는 선생님의 브라우저 메모리에만 일시적으로 유지되며, 서버나 그 어디에도 결코 저장되지 않습니다. (새로고침 시 초기화됨)</span>
                         </p>
-                        <input type="password" id="globalApiKeyInput" class="form-select" style="width: 100%; margin-top:0;" placeholder="AI studio에서 발급받은 Gemini API 키 입력">
+                        <input type="password" id="globalApiKeyInput" class="form-select" style="width: 100%; margin-top:0;" placeholder="발급받은 Gemini API 키 붙여넣기...">
                     </div>
                     <div class="modal-footer" style="text-align: right; margin-top: 25px; display:flex; justify-content: space-between;">
                         <button onclick="resetApiKey()" class="btn btn-outline-danger"><i class="fa-solid fa-trash-can"></i> 키 초기화</button>
