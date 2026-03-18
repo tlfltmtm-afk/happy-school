@@ -257,10 +257,12 @@ window.generateManualPromptText = function(index) {
     }
     
     if (isSecondTerm) {
+        const lineBreaksCount = parseInt(document.getElementById('aiLineBreaks')?.value || '2', 10);
+        const breaksStr = '\n'.repeat(lineBreaksCount);
         prompt += `- 문장 구성: 1학기와 2학기 내용이 포함되도록 생성하되, 1학기/2학기 내용이 중복되지 않도록 분리해서 작성.\n`;
         prompt += `  * 1학기 분량: 약 ${term1Length}자 내외\n`;
         prompt += `  * 2학기 분량: 약 ${term2Length}자 내외\n`;
-        prompt += `  * 주의사항: 1학기 내용 작성 후, 반드시 2줄 줄바꿈(엔터 2번)하여 문단을 명확히 구분한 뒤 2학기 내용을 이어서 작성할 것.\n`;
+        prompt += `  * 주의사항: 1학기 내용 작성 후, 반드시 ${lineBreaksCount}줄 줄바꿈(엔터 ${lineBreaksCount}번)하여 문단을 명확히 구분한 뒤 2학기 내용을 이어서 작성할 것.\n`;
     } else {
         prompt += `- 문장 기본 분량: 약 ${basicLength}자 내외\n`;
     }
@@ -568,7 +570,75 @@ studentSelect.addEventListener('change', (e) => {
         row._mbti = mbtiArr[Math.floor(Math.random() * mbtiArr.length)];
     }
     
-    document.getElementById('studentMbti').innerHTML = `MBTI: <span style="color:var(--primary-color)">${row._mbti}</span>`;
+    document.getElementById('studentMbti').innerHTML = `MBTI: ${row._mbti}`;
+
+    // Extract raw stats from survey data based on MAPPING_DATA
+    let studentGradeStr = String(row['학년'] || Object.values(row)[0] || "5");
+    let version = 'v3';
+    if(studentGradeStr.includes('1') || studentGradeStr.includes('2')) version = 'v1';
+    else if(studentGradeStr.includes('3') || studentGradeStr.includes('4')) version = 'v2';
+
+    const rowVals = Object.values(row);
+
+    // Helper: calculate average for a category
+    function getCategoryAvg(catName) {
+        if(!MAPPING_DATA[catName]) return 0;
+        let total = 0, count = 0;
+        Object.keys(MAPPING_DATA[catName]).forEach(sub => {
+            const qNums = MAPPING_DATA[catName][sub][version];
+            if(!qNums) return;
+            qNums.forEach(q => {
+                const valMatch = String(rowVals[3+q]).match(/\d+/);
+                if(valMatch) {
+                    total += parseInt(valMatch[0], 10);
+                    count++;
+                }
+            });
+        });
+        return count > 0 ? (total / count) : 0;
+    }
+
+    // Helper: Make stars
+    function getStars(score) {
+        const full = Math.round(score);
+        let starStr = "";
+        for(let i=0; i<5; i++) {
+            starStr += (i < full) ? "★" : "☆";
+        }
+        return starStr;
+    }
+
+    const hapAvg = getCategoryAvg('행복');
+    const adaptAvg = getCategoryAvg('학교적응력');
+    
+    document.getElementById('studentHappinessScore').innerText = `행복: ${hapAvg > 0 ? getStars(hapAvg) : '데이터 부족'}`;
+    document.getElementById('studentHappinessScore').style.color = hapAvg > 0 ? '#F59E0B' : 'var(--text-muted)';
+    
+    document.getElementById('studentAdaptScore').innerText = `학교적응: ${adaptAvg > 0 ? getStars(adaptAvg) : '데이터 부족'}`;
+    document.getElementById('studentAdaptScore').style.color = adaptAvg > 0 ? '#10B981' : 'var(--text-muted)';
+
+    // Multi-Intelligence Top 2~3
+    let miScores = [];
+    if(MAPPING_DATA['다중지능']) {
+        Object.keys(MAPPING_DATA['다중지능']).forEach(sub => {
+            let sum = 0, c = 0;
+            const qNums = MAPPING_DATA['다중지능'][sub][version];
+            if(qNums) {
+                qNums.forEach(q => {
+                    const match = String(rowVals[3+q]).match(/\d+/);
+                    if(match) { sum += parseInt(match[0], 10); c++; }
+                });
+            }
+            if(c>0) miScores.push({name: sub, score: sum/c});
+        });
+    }
+    if(miScores.length > 0) {
+        miScores.sort((a,b) => b.score - a.score);
+        const topMi = miScores.slice(0, 3).map(m => m.name).join(', ');
+        document.getElementById('studentMiStrengths').innerText = `강점 지능: ${topMi}`;
+    } else {
+        document.getElementById('studentMiStrengths').innerText = `강점 지능: 데이터 부족`;
+    }
 
     // Reset Tabs
     switchTab('tab-summary');
@@ -1316,6 +1386,22 @@ window.syncTerm1Length = function() {
     }
 };
 
+window.adjustTermLength = function(id, delta) {
+    const input = document.getElementById(id);
+    if(input) {
+        let val = parseInt(input.value, 10);
+        if(isNaN(val)) val = (id === 'aiLineBreaks' ? 2 : 200);
+        val += delta;
+        if(id === 'aiLineBreaks') {
+            if(val < 1) val = 1;
+            if(val > 10) val = 10;
+        } else {
+            if(val < 50) val = 50;
+        }
+        input.value = val;
+    }
+};
+
 // Download AI Generated Results as CSV
 window.downloadAiResults = function() {
     if(parsedData.length === 0) return alert("데이터가 없습니다.");
@@ -1463,6 +1549,7 @@ window.exportData = function() {
             aiLengthSetup: document.getElementById('aiLengthSetup')?.value || '300',
             aiTerm1Length: document.getElementById('aiTerm1Length')?.value || '200',
             aiTerm2Length: document.getElementById('aiTerm2Length')?.value || '200',
+            aiLineBreaks: document.getElementById('aiLineBreaks')?.value || '2',
             aiSecondSemesterCheck: document.getElementById('aiSecondSemesterCheck')?.checked || false,
             aiCustomRequest: document.getElementById('aiCustomRequest')?.value || ''
         }
@@ -1509,6 +1596,7 @@ window.importData = function(event) {
                 if(document.getElementById('aiLengthSetup')) document.getElementById('aiLengthSetup').value = result.uiPrefs.aiLengthSetup || '300';
                 if(document.getElementById('aiTerm1Length')) document.getElementById('aiTerm1Length').value = result.uiPrefs.aiTerm1Length || '200';
                 if(document.getElementById('aiTerm2Length')) document.getElementById('aiTerm2Length').value = result.uiPrefs.aiTerm2Length || '200';
+                if(document.getElementById('aiLineBreaks')) document.getElementById('aiLineBreaks').value = result.uiPrefs.aiLineBreaks || '2';
                 if(document.getElementById('aiCustomRequest')) document.getElementById('aiCustomRequest').value = result.uiPrefs.aiCustomRequest || '';
                 
                 const secCheck = document.getElementById('aiSecondSemesterCheck');
