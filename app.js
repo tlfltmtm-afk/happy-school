@@ -269,20 +269,13 @@ window.generateAiText = function(index) {
     const activeStrengths = Array.from(strengthNodes).map(n => n.innerText);
 
     if(!apiKey) {
-        // Mock generation using active badges
-        resultCell.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:var(--primary-color)"></i> 생성 중...`;
-        setTimeout(() => {
-            let sampleStrengths = "특별한 강점";
-            if(activeStrengths.length > 0) {
-                // If there are exactly 1 or 2 strengths, just use them. Otherwise, take up to 3.
-                sampleStrengths = activeStrengths.slice(0, 3).join(', ');
-            }
-            const mockText = `평소 ${sampleStrengths} 등의 긍정적 측면이 돋보이며 학급 분위기를 쇄신함. 앞으로의 성장이 더욱 기대되는 모범적인 학생임.`;
-            row._aiGenerated = mockText;
-            resultCell.innerText = mockText;
-        }, 800 + Math.random() * 700);
+        alert("글로벌 API 키가 설정되지 않았습니다. 좌측 하단의 '내 API Key 설정'에서 먼저 키를 입력해주세요. (API 키 미설정시 자동 생성이 불가합니다.)");
         return;
     }
+    
+    // Real API Logic
+    resultCell.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:var(--primary-color)"></i> 생성 중...`;
+    const promptText = window.generateManualPromptText(index);
     
     // Real API Logic
     window.callGeminiApi(promptText).then(text => {
@@ -641,17 +634,6 @@ studentSelect.addEventListener('change', (e) => {
         }
     });
 
-    // 5. Raw Survey Data Render per category
-    const renderTable = (keys) => {
-        if(!keys || keys.length === 0) return '<p style="padding:15px; color:var(--text-muted); font-size:0.95rem;">연결된 응답 데이터가 없습니다.</p>';
-        let tableHtml = '<table style="width:100%; border-collapse: collapse; font-size: 0.95rem;"><thead><tr><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">항목 헤더</th><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">응답 값</th></tr></thead><tbody>';
-        keys.forEach(key => {
-            tableHtml += `<tr><td style="padding:12px; border-bottom:1px solid #eee; font-weight:500; width:65%; color:var(--text-main);">${key}</td><td style="padding:12px; border-bottom:1px solid #eee; color: var(--primary-color); font-weight:bold;">${row[key]}</td></tr>`;
-        });
-        tableHtml += '</tbody></table>';
-        return tableHtml;
-    };
-
     const rowKeys = Object.keys(row).filter(k => !k.startsWith('_'));
     const rowValues = Object.values(row);
     // 보통 처음 4개(타임스탬프, 학년, 반, 번호, 이름 등 - 템플릿에 따라 다르나 보통 앞부분)는 메타데이터입니다.
@@ -666,27 +648,50 @@ studentSelect.addEventListener('change', (e) => {
     if(gradeStr.includes('1') || gradeStr.includes('2')) targetSurvey = SURVEY_DATA["1~2학년용"];
     else if(gradeStr.includes('3') || gradeStr.includes('4')) targetSurvey = SURVEY_DATA["3~4학년용"];
 
+    let flatEvals = [];
+    if (targetSurvey) {
+        targetSurvey.forEach(sec => {
+            sec.questions.forEach(q => flatEvals.push(q.eval || sec.section));
+        });
+    }
+
+    // 5. Raw Survey Data Render per category
+    const renderTable = (keys, startIndex = 0) => {
+        if(!keys || keys.length === 0) return '<p style="padding:15px; color:var(--text-muted); font-size:0.95rem;">연결된 응답 데이터가 없습니다.</p>';
+        let tableHtml = '<table style="width:100%; border-collapse: collapse; font-size: 0.95rem;"><thead><tr><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">항목 헤더</th><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">응답 값</th></tr></thead><tbody>';
+        keys.forEach((key, iterIdx) => {
+            const prefix = flatEvals[startIndex + iterIdx] ? `[${flatEvals[startIndex + iterIdx]}] ` : '';
+            tableHtml += `<tr><td style="padding:12px; border-bottom:1px solid #eee; font-weight:500; width:65%; color:var(--text-main);"><span style="color:var(--primary-color); font-weight:bold; margin-right:5px;">${prefix}</span>${key}</td><td style="padding:12px; border-bottom:1px solid #eee; color: var(--primary-color); font-weight:bold;">${row[key]}</td></tr>`;
+        });
+        tableHtml += '</tbody></table>';
+        return tableHtml;
+    };
+
     let hapKeys = [], mbtiKeys = [], miKeys = [], adaptKeys = [];
     
+    let hapOffset = 0, mbtiOffset = 0, miOffset = 0, adaptOffset = 0;
     if (targetSurvey && finalSurveyKeys.length === targetSurvey.reduce((sum, s) => sum + s.questions.length, 0)) {
-        let offset = 0;
-        hapKeys = finalSurveyKeys.slice(offset, offset + targetSurvey[0].questions.length); offset += targetSurvey[0].questions.length;
-        mbtiKeys = finalSurveyKeys.slice(offset, offset + targetSurvey[1].questions.length); offset += targetSurvey[1].questions.length;
-        miKeys = finalSurveyKeys.slice(offset, offset + targetSurvey[2].questions.length); offset += targetSurvey[2].questions.length;
-        adaptKeys = finalSurveyKeys.slice(offset, offset + targetSurvey[3].questions.length);
+        hapOffset = 0;
+        hapKeys = finalSurveyKeys.slice(hapOffset, hapOffset + targetSurvey[0].questions.length); 
+        mbtiOffset = hapOffset + targetSurvey[0].questions.length;
+        mbtiKeys = finalSurveyKeys.slice(mbtiOffset, mbtiOffset + targetSurvey[1].questions.length); 
+        miOffset = mbtiOffset + targetSurvey[1].questions.length;
+        miKeys = finalSurveyKeys.slice(miOffset, miOffset + targetSurvey[2].questions.length); 
+        adaptOffset = miOffset + targetSurvey[2].questions.length;
+        adaptKeys = finalSurveyKeys.slice(adaptOffset, adaptOffset + targetSurvey[3].questions.length);
     } else if (finalSurveyKeys.length > 0) {
         // 길이가 정확히 맞지 않는 경우, 대략 4등분 (fallback)
         let chunk = Math.ceil(finalSurveyKeys.length / 4);
-        hapKeys = finalSurveyKeys.slice(0, chunk);
-        mbtiKeys = finalSurveyKeys.slice(chunk, chunk*2);
-        miKeys = finalSurveyKeys.slice(chunk*2, chunk*3);
-        adaptKeys = finalSurveyKeys.slice(chunk*3);
+        hapOffset = 0; hapKeys = finalSurveyKeys.slice(0, chunk);
+        mbtiOffset = chunk; mbtiKeys = finalSurveyKeys.slice(chunk, chunk*2);
+        miOffset = chunk*2; miKeys = finalSurveyKeys.slice(chunk*2, chunk*3);
+        adaptOffset = chunk*3; adaptKeys = finalSurveyKeys.slice(chunk*3);
     }
 
-    if(document.getElementById('studentHappinessRaw')) document.getElementById('studentHappinessRaw').innerHTML = renderTable(hapKeys);
-    if(document.getElementById('studentMbtiRaw')) document.getElementById('studentMbtiRaw').innerHTML = renderTable(mbtiKeys);
-    if(document.getElementById('studentMiRaw')) document.getElementById('studentMiRaw').innerHTML = renderTable(miKeys);
-    if(document.getElementById('studentAdaptRaw')) document.getElementById('studentAdaptRaw').innerHTML = renderTable(adaptKeys);
+    if(document.getElementById('studentHappinessRaw')) document.getElementById('studentHappinessRaw').innerHTML = renderTable(hapKeys, hapOffset);
+    if(document.getElementById('studentMbtiRaw')) document.getElementById('studentMbtiRaw').innerHTML = renderTable(mbtiKeys, mbtiOffset);
+    if(document.getElementById('studentMiRaw')) document.getElementById('studentMiRaw').innerHTML = renderTable(miKeys, miOffset);
+    if(document.getElementById('studentAdaptRaw')) document.getElementById('studentAdaptRaw').innerHTML = renderTable(adaptKeys, adaptOffset);
     
     let allHtml = '<table style="width:100%; border-collapse: collapse; font-size: 0.95rem;">';
     allHtml += '<thead><tr><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">항목 헤더</th><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">응답 값</th></tr></thead><tbody>';
@@ -836,17 +841,43 @@ window.startGeminiConsulting = function() {
     const weaknesses = row._weaknesses ? row._weaknesses.join(", ") : "특이사항 없음";
     const mbti = row._mbti || "알 수 없음";
 
-    const prompt = `당신은 초등학교 교사를 돕는 따뜻하고 전문적인 학생 맞춤형 지도 AI 컨설턴트입니다.
-다음 학생의 정보를 바탕으로, 이 학생이 학교생활을 더욱 행복하게 하고 강점을 살릴 수 있는 구체적인 지도 방안(컨설팅)을 제시해주세요.
+    const rowKeys = Object.keys(row).filter(k => !k.startsWith('_'));
+    const rowValues = Object.values(row);
+    const surveyKeys = rowKeys.filter(k => /^\d+\./.test(k)); 
+    const finalSurveyKeys = surveyKeys.length > 0 ? surveyKeys : rowKeys.slice(4);
 
-[학생 정보]
+    let gradeStr = String(row['학년'] || rowValues[0] || "O");
+    let targetSurvey = SURVEY_DATA["5~6학년용"];
+    if(gradeStr.includes('1') || gradeStr.includes('2')) targetSurvey = SURVEY_DATA["1~2학년용"];
+    else if(gradeStr.includes('3') || gradeStr.includes('4')) targetSurvey = SURVEY_DATA["3~4학년용"];
+
+    let flatEvals = [];
+    if (targetSurvey) {
+        targetSurvey.forEach(sec => {
+            sec.questions.forEach(q => flatEvals.push(q.eval || sec.section));
+        });
+    }
+
+    const surveyResponses = finalSurveyKeys.map((key, i) => {
+        const prefix = flatEvals[i] ? `[${flatEvals[i]}] ` : '';
+        return `${prefix}${key} : ${row[key]}`;
+    }).join('\n');
+
+    const prompt = `당신은 초등학교 교사를 돕는 따뜻하고 전문적인 학생 맞춤형 지도 AI 상담전문가입니다.
+다음은 [${name}] 학생이 직접 참여한 종합 다면적 심리/학교생활 설문 응답 결과입니다.
+이를 꼼꼼히 분석하여, 학급 담임 교사에게 학교생활 지도 및 학생의 강점 강화를 위해 당장 실천할 수 있는 구체적인 컨설팅 내용을 제공해주세요.
+
+[학생 기본 정보]
 - 이름: ${name}
 - 소속: ${meta}
-- MBTI 성향: ${mbti}
-- 주요 강점: ${strengths}
-- 지도 및 보완점: ${weaknesses}
+- 추정 MBTI 성향: ${mbti}
+- 주요 발달 강점: ${strengths}
+- 요주의 및 보완점: ${weaknesses}
 
-어조는 교사에게 친절하게 조언하듯 존댓말로 작성해주시고, 실제 학급에서 오늘 당장 실천 가능한 구체적인 교사의 지도 팁을 3가지 이상 포함해주세요.`;
+[설문 응답 상세 내역 요약]
+${surveyResponses}
+
+어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시고, 위 응답 내역에 기반하여 실제 학급에서 오늘 당장 적용할 수 있는 구체적이고 실질적인 교사의 지도 팁을 3가지 이상 상세히 포함해주세요. 특히 설문에 드러난 긍정/부정적 요소를 어떻게 활용하고 보완할지에 초점을 맞춰주세요.`;
 
     navigator.clipboard.writeText(prompt).then(() => {
         alert("[" + name + "] 학생의 정보와 컨설팅 프롬프트가 클립보드에 복사되었습니다.\\n\\n[확인]을 누르시면 제미나이(Gemini)로 이동합니다.\\n이동 후 채팅창에 붙여넣기(Ctrl+V) 하여 컨설팅을 시작하세요!");
