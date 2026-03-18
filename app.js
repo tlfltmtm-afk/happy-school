@@ -111,7 +111,7 @@ function transformWeakness(weakness) {
     if(weakness.includes("필요") || weakness.includes("요망") || weakness.includes("바람")) {
         return weakness; 
     }
-    return `${weakness} 점이 앞으로 점차 개선될 것으로 기대됨`;
+    return weakness;
 }
 
 // Extract student-specific keywords from raw survey data
@@ -229,33 +229,55 @@ window.toggleKeyword = function(el) {
 window.generateManualPromptText = function(index) {
     const row = parsedData[index];
     const name = getStudentName(row);
-    const meta = getStudentMeta(row);
+    const baseMeta = getStudentMeta(row);
+    
+    // UI values
+    const gradeSetup = document.getElementById('aiGradeSetup')?.value.trim();
+    const metaStr = gradeSetup ? `${gradeSetup}` : baseMeta;
+
+    const isSecondTerm = document.getElementById('aiSecondSemesterCheck')?.checked;
+    const basicLength = document.getElementById('aiLengthSetup')?.value || '300';
+    const term1Length = document.getElementById('aiTerm1Length')?.value || '200';
+    const term2Length = document.getElementById('aiTerm2Length')?.value || '200';
+    const customReq = document.getElementById('aiCustomRequest')?.value.trim();
     
     // Read active badges from DOM
     const strengthNodes = document.querySelectorAll(`#ai-strengths-${index} .keyword-badge.strength.active`);
     const weaknessNodes = document.querySelectorAll(`#ai-weaknesses-${index} .keyword-badge.weakness.active`);
     
-    // `.innerText` will extract the text of only the nodes that had the `.active` class because of the selector above.
     const activeStrengths = Array.from(strengthNodes).map(n => n.innerText);
     const activeWeaknesses = Array.from(weaknessNodes).map(n => n.innerText);
     
-    let prompt = `다음 학생의 학교생활기록부 행동발달 문장을 300자 내외로 작성해줘.\n`;
+    let prompt = `다음 학생의 학교생활기록부 행동발달 문장을 작성해줘.\n`;
     prompt += `- 학생 이름: ${name}\n`;
-    prompt += `- 배경 정보: ${meta}\n`;
+    prompt += `- 배경 정보: ${metaStr}\n`;
     prompt += `- 주요 강점 키워드: ${activeStrengths.join(', ')}\n`;
     if(activeWeaknesses.length > 0) {
-        prompt += `- 지도 및 보완 요망 지점: ${activeWeaknesses.join(', ')}\n`;
+        prompt += `- 지도 및 보완 지점: ${activeWeaknesses.join(', ')}\n`;
     }
-    prompt += `어조는 교사가 학생을 객관적이면서도 애정어린 시선으로 관찰한 긍정적 평어체로, '~함.', '~임.' 으로 끝나게 작성해줘.`;
+    
+    if (isSecondTerm) {
+        prompt += `- 문장 구성: 1학기와 2학기 내용이 포함되도록 생성하되, 1학기/2학기 내용이 중복되지 않도록 분리해서 작성.\n`;
+        prompt += `  * 1학기 분량: 약 ${term1Length}자 내외\n`;
+        prompt += `  * 2학기 분량: 약 ${term2Length}자 내외\n`;
+        prompt += `  * 주의사항: 1학기 내용 작성 후, 반드시 2줄 줄바꿈(엔터 2번)하여 문단을 명확히 구분한 뒤 2학기 내용을 이어서 작성할 것.\n`;
+    } else {
+        prompt += `- 문장 기본 분량: 약 ${basicLength}자 내외\n`;
+    }
+
+    prompt += `어조는 교사가 학생을 객관적이면서도 애정어린 시선으로 관찰한 긍정적 평어체로, '~함.', '~임.' 으로 끝나게 작성해줘.\n`;
+
+    if (customReq) {
+        prompt += `- 사용자 개별 추가 요구사항: ${customReq}\n`;
+    }
+
     return prompt;
 };
 
 // Copy Manual Prompt for a single student
 window.copyManualPrompt = function(index) {
     const promptText = generateManualPromptText(index);
-    navigator.clipboard.writeText(promptText).then(() => {
-        alert(`${parsedData[index]['이름'] || '학생'}의 평어 생성 프롬프트가 복사되었습니다! ChatGPT나 Claude에 붙여넣으세요.`);
-    });
+    openAiSiteModal(promptText, `${parsedData[index]['이름'] || '학생'}의 평어 생성 프롬프트가 복사되었습니다!`);
 };
 
 // Create mock AI result or use real logic depending on future Needs
@@ -302,7 +324,7 @@ document.getElementById('copyAllPromptBtn').addEventListener('click', () => {
         const prompt = generateManualPromptText(index).replace(/\n/g, " "); // Replace newlines for excel
         text += `${getStudentName(row)}\t${getStudentMeta(row)}\t${prompt}\n`;
     });
-    navigator.clipboard.writeText(text).then(() => alert("전체 학생의 [수동 프롬프트]가 엑셀 붙여넣기 형태로 클립보드에 복사되었습니다."));
+    openAiSiteModal(text, "전체 학생의 [수동 프롬프트]가 엑셀 붙여넣기 형태로 클립보드에 복사되었습니다.");
 });
 
 
@@ -578,7 +600,7 @@ studentSelect.addEventListener('change', (e) => {
             </div>
         </div>
          <div class="summary-box">
-            <h4><i class="fa-solid fa-seedling" style="color:#E2B467"></i> 지도 보완 요망 지점</h4>
+            <h4><i class="fa-solid fa-seedling" style="color:#E2B467"></i> 지도 보완 사항</h4>
             <ul style="margin-top:10px; padding-left:20px; color:var(--text-muted); font-size:0.95rem;">
                 ${row._weaknesses.map(w => `<li>${w}</li>`).join('')}
             </ul>
@@ -867,13 +889,7 @@ window.startClassGeminiConsulting = function() {
 어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시고, 
 개별 학생이 아닌 '학급 전체'를 대상으로 한 학급 경영, 분위기 쇄신, 모둠 활동 구성 등에 관한 실질적인 아이디어에 초점을 맞춰주세요.`;
 
-    navigator.clipboard.writeText(prompt).then(() => {
-        alert("학급 전체 요약 정보와 컨설팅 프롬프트가 클립보드에 복사되었습니다.\\n\\n[확인]을 누르시면 제미나이(Gemini)로 이동합니다.\\n이동 후 채팅창에 붙여넣기(Ctrl+V) 하여 학급 상담을 시작하세요!");
-        window.open("https://gemini.google.com/app", "_blank");
-    }).catch(err => {
-        console.error('클립보드 복사 실패:', err);
-        alert("클립보드 복사에 실패했습니다. 브라우저 권한을 확인해주세요.");
-    });
+    openAiSiteModal(prompt, "학급 전체 요약 정보와 컨설팅 프롬프트가 복사되었습니다!");
 };
 
 window.startGeminiConsulting = function() {
@@ -926,13 +942,7 @@ ${surveyResponses}
 
 어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시고, 위 응답 내역에 기반하여 실제 학급에서 오늘 당장 적용할 수 있는 구체적이고 실질적인 교사의 지도 팁을 3가지 이상 상세히 포함해주세요. 특히 설문에 드러난 긍정/부정적 요소를 어떻게 활용하고 보완할지에 초점을 맞춰주세요.`;
 
-    navigator.clipboard.writeText(prompt).then(() => {
-        alert("[" + name + "] 학생의 정보와 컨설팅 프롬프트가 클립보드에 복사되었습니다.\\n\\n[확인]을 누르시면 제미나이(Gemini)로 이동합니다.\\n이동 후 채팅창에 붙여넣기(Ctrl+V) 하여 컨설팅을 시작하세요!");
-        window.open("https://gemini.google.com/app", "_blank");
-    }).catch(err => {
-        console.error('클립보드 복사 실패:', err);
-        alert("클립보드 복사에 실패했습니다. 브라우저 권한을 확인해주세요.");
-    });
+    openAiSiteModal(prompt, `[${name}] 학생의 정보와 컨설팅 프롬프트가 복사되었습니다!`);
 };
 
 function initChatOverlay() {
@@ -1141,3 +1151,106 @@ window.showStudentRawData = function(index) {
     body.innerHTML = html;
     modal.style.display = 'flex';
 };
+
+// AI Site Modal Logic
+window.openAiSiteModal = function(textToCopy, customMessage) {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        const msgEl = document.getElementById('aiSiteModalMessage');
+        if(msgEl) msgEl.innerText = customMessage || "원하시는 AI 사이트로 이동하여 붙여넣기(Ctrl+V) 하세요.";
+        document.getElementById('aiSiteModal').style.display = 'flex';
+    }).catch(err => {
+        console.error("클립보드 실패:", err);
+        alert("클립보드 복사에 실패했습니다.");
+    });
+};
+window.closeAiSiteModal = function() {
+    document.getElementById('aiSiteModal').style.display = 'none';
+};
+window.openAiSite = function(url) {
+    window.open(url, "_blank");
+    closeAiSiteModal();
+};
+
+// Toggle 2nd Semester AI UI
+window.toggleSecondSemester = function() {
+    const isChecked = document.getElementById('aiSecondSemesterCheck').checked;
+    const secContainer = document.getElementById('secondSemesterSetup');
+    const basicLenContainer = document.getElementById('aiLengthContainer');
+    
+    if (isChecked) {
+        secContainer.style.display = 'block';
+        if(basicLenContainer) basicLenContainer.style.opacity = '0.5';
+    } else {
+        secContainer.style.display = 'none';
+        if(basicLenContainer) basicLenContainer.style.opacity = '1';
+    }
+};
+
+// Random keywords picker
+window.promptRandomKeywords = function(type) {
+    if(parsedData.length === 0) return alert("데이터가 없습니다.");
+    
+    const countStr = prompt(`자동으로 랜덤 선택할 ${type === 'strength' ? '강점' : '보완'} 키워드 개수를 입력하세요 (예: 5)`, type === 'strength' ? "10" : "2");
+    if(!countStr) return;
+    const count = parseInt(countStr, 10);
+    if(isNaN(count) || count < 0) return alert("올바른 숫자를 입력하세요.");
+    
+    let typeClass = type === 'strength' ? 'strength' : 'weakness';
+    
+    parsedData.forEach((row, index) => {
+        const badgesContainer = document.getElementById(type === 'strength' ? `ai-strengths-${index}` : `ai-weaknesses-${index}`);
+        if(!badgesContainer) return;
+
+        const badges = Array.from(badgesContainer.querySelectorAll(`.keyword-badge.${typeClass}`));
+        
+        // Shuffle
+        const shuffled = [...badges].sort(() => 0.5 - Math.random());
+        shuffled.forEach((badge, idx) => {
+            if(idx < count) {
+                badge.classList.add('active');
+            } else {
+                badge.classList.remove('active');
+            }
+        });
+    });
+};
+
+// Download AI Generated Results as CSV
+window.downloadAiResults = function() {
+    if(parsedData.length === 0) return alert("데이터가 없습니다.");
+    
+    let csvContent = "\uFEFF"; // BOM for Excel UTF-8
+    csvContent += "No,학생 이름,정보,선택된 강점 키워드,선택된 보완 키워드,AI 자동생성 결과\n";
+    
+    parsedData.forEach((row, index) => {
+        const name = getStudentName(row);
+        const meta = getStudentMeta(row);
+        
+        const strengthNodes = document.querySelectorAll(`#ai-strengths-${index} .keyword-badge.strength.active`);
+        const weaknessNodes = document.querySelectorAll(`#ai-weaknesses-${index} .keyword-badge.weakness.active`);
+        const activeStrengths = Array.from(strengthNodes).map(n => n.innerText).join(', ');
+        const activeWeaknesses = Array.from(weaknessNodes).map(n => n.innerText).join(', ');
+        
+        const aiResult = row._aiGenerated ? row._aiGenerated.replace(/"/g, '""') : "미생성";
+        
+        const csvRow = [
+            index + 1,
+            `"${name}"`,
+            `"${meta}"`,
+            `"${activeStrengths}"`,
+            `"${activeWeaknesses}"`,
+            `"${aiResult}"`
+        ];
+        csvContent += csvRow.join(",") + "\n";
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `행동발달_자동생성결과_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+

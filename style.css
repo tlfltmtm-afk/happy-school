@@ -852,3 +852,45 @@ tr:hover {
         border-radius: 0;
     }
 }
+
+/* Print Styles for PDF Download */
+@media print {
+    body {
+        background-color: white !important;
+    }
+    .sidebar, .btn, .risk-nav-wrapper, #aiSiteModal, #chatOverlay, #apiSetupModal, header p, .ai-setup-card, .controls-bar {
+        display: none !important;
+    }
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    .page-section.active {
+        display: block !important;
+        page-break-after: auto;
+    }
+    .chart-card {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+    }
+    .charts-wrap {
+        display: block !important;
+    }
+    .charts-wrap > div {
+        margin-bottom: 20px;
+    }
+    .profile-tabs {
+        display: none !important;
+    }
+    .tab-content-container .tab-pane {
+        display: block !important; 
+        page-break-inside: avoid;
+        margin-bottom: 30px;
+    }
+    .ai-consult-card {
+        display: none !important;
+    }
+}
