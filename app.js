@@ -284,8 +284,13 @@ window.generateAiText = function(index) {
         return;
     }
     
-    // Real API Logic placeholder
-    resultCell.innerText = "API 연결 기능은 현재 데모 버전에서 미지원 상태입니다. [수동 복사]를 활용해주세요.";
+    // Real API Logic
+    window.callGeminiApi(promptText).then(text => {
+        row._aiGenerated = text;
+        resultCell.innerHTML = text.replace(/\n/g, '<br>');
+    }).catch(err => {
+        resultCell.innerHTML = `<span style="color:var(--text-muted);">API 요청 실패: ${err.message}</span>`;
+    });
 }
 
 document.getElementById('generateAllBtn').addEventListener('click', () => {
@@ -695,7 +700,130 @@ studentSelect.addEventListener('change', (e) => {
     if(document.getElementById('studentSurveyRaw')) document.getElementById('studentSurveyRaw').innerHTML = allHtml;
 });
 
-// Gemini 맞춤 컨설팅 동작
+// Gemini API & Chat Logic
+let globalApiKey = sessionStorage.getItem('geminiApiKey') || "";
+let currentChatContext = ""; 
+let chatHistory = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateApiStatusBadge();
+});
+
+function updateApiStatusBadge() {
+    const badge = document.getElementById('apiStatusBadge');
+    if (!badge) return;
+    if (globalApiKey) {
+        badge.textContent = "API 설정 완료";
+        badge.style.background = "#E6F4EF";
+        badge.style.color = "var(--primary-color)";
+        badge.style.borderColor = "var(--primary-color)";
+    } else {
+        badge.textContent = "API 미설정";
+        badge.style.background = "#E2E8F0";
+        badge.style.color = "var(--text-muted)";
+        badge.style.borderColor = "#CBD5E1";
+    }
+}
+
+window.openApiModal = function() {
+    document.getElementById('globalApiKeyInput').value = globalApiKey;
+    document.getElementById('apiSetupModal').style.display = 'flex';
+};
+
+window.closeApiModal = function() {
+    document.getElementById('apiSetupModal').style.display = 'none';
+};
+
+window.saveApiKey = function() {
+    const key = document.getElementById('globalApiKeyInput').value.trim();
+    if(key) {
+        globalApiKey = key;
+        sessionStorage.setItem('geminiApiKey', key);
+        updateApiStatusBadge();
+        alert("API 키가 임시 적용되었습니다.");
+        closeApiModal();
+    } else {
+        alert("API 키를 입력해주세요.");
+    }
+};
+
+window.resetApiKey = function() {
+    globalApiKey = "";
+    sessionStorage.removeItem('geminiApiKey');
+    document.getElementById('globalApiKeyInput').value = "";
+    updateApiStatusBadge();
+    alert("API 키가 초기화되었습니다.");
+};
+
+window.callGeminiApi = async function(prompt) {
+    if(!globalApiKey) {
+        throw new Error("API 키가 설정되지 않았습니다.");
+    }
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${globalApiKey}`;
+    
+    // Convert history + current prompt to Gemini format
+    const contents = chatHistory.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.text }]
+    }));
+    contents.push({ role: 'user', parts: [{ text: prompt }] });
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: contents })
+    });
+    
+    if(!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error?.message || "알 수 없는 오류 발생");
+    }
+    
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
+};
+
+// Chat UI Controls
+window.openStudentConsultingChat = function() {
+    const studentIdx = document.getElementById('studentSelect').value;
+    if (studentIdx === "") return alert("학생을 먼저 선택해주세요.");
+    if (!globalApiKey) {
+        alert("글로벌 API 키 설정이 필요합니다. 좌측 메뉴 하단의 버튼을 눌러 설정해주세요.");
+        return openApiModal();
+    }
+    
+    const row = parsedData[studentIdx];
+    const name = getStudentName(row);
+    document.getElementById('chatTitle').innerText = `${name} 학생 맞춤 상담`;
+    
+    const strengths = row._strengths ? row._strengths.join(", ") : "";
+    const weaknesses = row._weaknesses ? row._weaknesses.join(", ") : "";
+    
+    currentChatContext = `선생님은 초등학교 교사이고, 나는 선생님을 돕는 교육 AI 컨설턴트입니다.
+현재 우리는 [${name}(${getStudentMeta(row)})] 학생에 대해 논의 중입니다.
+학생의 MBTI는 ${row._mbti || "미상"}이며, 눈여겨볼 강점은 [${strengths}]이고, 지도/보완점은 [${weaknesses}]입니다.
+선생님이 질문하시면 친절하고 실천 가능하며 선생님을 배려하는 어조로 짧고 명확하게 답변해주세요. 첫 인사를 부탁합니다.`;
+    
+    initChatOverlay();
+};
+
+window.openClassConsultingChat = function() {
+    if (parsedData.length === 0) return alert("데이터를 먼저 입력해주세요.");
+    if (!globalApiKey) {
+        alert("글로벌 API 키 설정이 필요합니다. 좌측 메뉴 하단의 버튼을 눌러 설정해주세요.");
+        return openApiModal();
+    }
+    
+    document.getElementById('chatTitle').innerText = `학급 전체 종합 상담`;
+    
+    currentChatContext = `선생님은 초등학교 교사이고, 나는 선생님을 돕는 교육 AI 컨설턴트입니다.
+현재 우리 학급에는 총 ${parsedData.length}명의 학생이 있습니다.
+선생님이 학급 경영, 수업 방향, 전체적인 분위기 조성에 대해 질문을 하실 것입니다.
+질문이 오면 친절하고 실제 교실에서 쓰일 수 있는 구체적인 팁 위주로 명확하게 답변해주세요. 첫 인사를 부탁합니다.`;
+    
+    initChatOverlay();
+};
+
 window.startGeminiConsulting = function() {
     const studentIdx = document.getElementById('studentSelect').value;
     if (studentIdx === "") return alert("학생을 먼저 선택해주세요.");
@@ -727,6 +855,136 @@ window.startGeminiConsulting = function() {
         console.error('클립보드 복사 실패:', err);
         alert("클립보드 복사에 실패했습니다. 브라우저 권한을 확인해주세요.");
     });
+};
+
+function initChatOverlay() {
+    chatHistory = [];
+    document.getElementById('chatBody').innerHTML = '';
+    document.getElementById('chatOverlay').style.display = 'block';
+    
+    // System Prompt 초기화
+    addChatBubble("bot", `<i class="fa-solid fa-spinner fa-spin"></i> 연결 중...`);
+    
+    callGeminiApi(currentChatContext).then(resText => {
+        document.getElementById('chatBody').innerHTML = '';
+        addChatBubble("bot", resText);
+        chatHistory.push({ role: 'bot', text: resText });
+    }).catch(err => {
+        document.getElementById('chatBody').innerHTML = '';
+        addChatBubble("bot", "API 연결에 실패했습니다. 키가 올바른지 확인해주세요. (" + err.message + ")");
+    });
+}
+
+window.closeChatOverlay = function() {
+    document.getElementById('chatOverlay').style.display = 'none';
+};
+
+function addChatBubble(role, text) {
+    const chatBody = document.getElementById('chatBody');
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${role}-bubble`;
+    // 단순 줄바꿈 및 마크다운 리스트 임시 렌더링
+    let formattedText = text.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    bubble.innerHTML = formattedText;
+    chatBody.appendChild(bubble);
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+window.sendChatMessage = function() {
+    const inputEl = document.getElementById('chatInput');
+    const text = inputEl.value.trim();
+    if(!text) return;
+    
+    addChatBubble("user", text);
+    chatHistory.push({ role: 'user', text: text });
+    inputEl.value = '';
+    inputEl.style.height = 'auto'; // 리사이즈 리셋
+    
+    // Loading indicator
+    const loadingId = "loading-" + Date.now();
+    const chatBody = document.getElementById('chatBody');
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble bot-bubble`;
+    bubble.id = loadingId;
+    bubble.innerHTML = `<span style="color:var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-ellipsis fa-fade"></i> AI 답변을 기다리는 중...</span>`;
+    chatBody.appendChild(bubble);
+    chatBody.scrollTop = chatBody.scrollHeight;
+
+    callGeminiApi(text).then(resText => {
+        document.getElementById(loadingId).remove();
+        addChatBubble("bot", resText);
+        chatHistory.push({ role: 'bot', text: resText });
+    }).catch(err => {
+        document.getElementById(loadingId).remove();
+        addChatBubble("bot", `<span style="color:#E53E3E;">에러가 발생했습니다: ${err.message}</span>`);
+    });
+};
+
+document.getElementById('chatInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessage();
+    }
+});
+
+// 자동 리사이징 input
+document.getElementById('chatInput').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+});
+
+window.requestChatAction = function(actionType) {
+    if(chatHistory.length < 2) return alert("대화 내역이 충분하지 않습니다.");
+    
+    let promptMsg = "";
+    if(actionType === 'summary') {
+        promptMsg = "지금까지 우리가 나눈 대화 내용을 3~4문장으로 짧게 요약해줘.";
+    } else if (actionType === 'organize') {
+        promptMsg = "지금까지 우리가 나눈 대화에서 나온 주요 지도 방안, 주의점 등을 글머리 기호(마크다운 리스트)를 사용하여 구체적인 항목별로 깔끔하게 정리해줘.";
+    }
+    
+    if(promptMsg) {
+        addChatBubble("user", `[시스템 요청: ${actionType === 'summary' ? '대화 요약' : '내용 정리'}]`);
+        
+        const loadingId = "loading-" + Date.now();
+        const chatBody = document.getElementById('chatBody');
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble bot-bubble`;
+        bubble.id = loadingId;
+        bubble.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 처리 중...`;
+        chatBody.appendChild(bubble);
+        chatBody.scrollTop = chatBody.scrollHeight;
+
+        callGeminiApi(promptMsg).then(resText => {
+            document.getElementById(loadingId).remove();
+            addChatBubble("bot", resText);
+            chatHistory.push({ role: 'bot', text: resText });
+        }).catch(err => {
+            document.getElementById(loadingId).remove();
+            addChatBubble("bot", "오류 발생: " + err.message);
+        });
+    }
+};
+
+window.downloadChatHistory = function() {
+    if(chatHistory.length === 0) return alert("다운로드할 대화 내역이 없습니다.");
+    
+    let textContent = "==== AI 컨설턴트 상담 내역 ====\n\n";
+    chatHistory.forEach(msg => {
+        let roleName = msg.role === 'user' ? "선생님" : "AI 컨설턴트";
+        textContent += `▶ ${roleName}\n${msg.text}\n\n-------------------------------\n\n`;
+    });
+    
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `AI상담내역_${new Date().getTime()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 };
 
 
