@@ -32,14 +32,22 @@
                 <li data-target="personal-stats"><i class="fa-solid fa-user"></i> 개인별 맞춤 컨설팅</li>
                 <li data-target="ai-generator"><i class="fa-solid fa-wand-magic-sparkles"></i> AI 행동발달 생성기</li>
             </ul>
-            <div style="padding: 20px; border-top: 1px solid var(--border-color); display:flex; flex-direction:column; gap:10px;">
-                <button id="sidebarApiBtn" class="btn btn-outline-primary" onclick="openApiModal()" style="width: 100%; justify-content: center; font-size: 0.95rem;">
+            <div
+                style="padding: 20px; border-top: 1px solid var(--border-color); display:flex; flex-direction:column; gap:10px;">
+                <button id="sidebarApiBtn" class="btn btn-outline-primary" onclick="openApiModal()"
+                    style="width: 100%; justify-content: center; font-size: 0.95rem;">
                     <i class="fa-solid fa-key"></i> 내 API Key 설정
                 </button>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn btn-outline-secondary btn-sm" onclick="exportData()" style="flex:1; justify-content:center; padding:8px 0;" title="전체 데이터(분석,결과,채팅 등)를 백업합니다"><i class="fa-solid fa-download"></i> 백업</button>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('importFile').click()" style="flex:1; justify-content:center; padding:8px 0;" title="기존 백업 파일을 불러옵니다"><i class="fa-solid fa-upload"></i> 불러오기</button>
-                    <input type="file" id="importFile" style="display:none;" accept=".json" onchange="importData(event)">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="exportData()"
+                        style="flex:1; justify-content:center; padding:8px 0;" title="전체 데이터(분석,결과,채팅 등)를 백업합니다"><i
+                            class="fa-solid fa-download"></i> 백업</button>
+                    <button class="btn btn-outline-secondary btn-sm"
+                        onclick="document.getElementById('importFile').click()"
+                        style="flex:1; justify-content:center; padding:8px 0;" title="기존 백업 파일을 불러옵니다"><i
+                            class="fa-solid fa-upload"></i> 불러오기</button>
+                    <input type="file" id="importFile" style="display:none;" accept=".json"
+                        onchange="importData(event)">
                 </div>
             </div>
         </nav>
@@ -144,18 +152,21 @@
 
             <!-- 4. 학급 전체 컨설팅 -->
             <section id="class-stats" class="page-section">
-                <header style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
+                <header
+                    style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
                     <div>
                         <h1>학급 전체 컨설팅</h1>
                         <p>우리 반 전체 학생들의 경향성과 항목별 평균을 확인하실 수 있습니다.</p>
-                        <button class="btn btn-outline-tertiary btn-sm" onclick="window.print()" style="margin-top:10px;"><i class="fa-solid fa-file-pdf"></i> 학급 컨설팅 리포트 PDF 저장</button>
+                        <button class="btn btn-outline-tertiary btn-sm" onclick="window.print()"
+                            style="margin-top:10px;"><i class="fa-solid fa-file-pdf"></i> 학급 컨설팅 리포트 PDF 저장</button>
                     </div>
                     <div style="display:flex; gap:10px;">
-                        <button class="btn btn-primary" onclick="openClassConsultingChat()" style="background-color:#FDE047; color:#854D0E; border-color:#FACC15;">
-                            <i class="fa-solid fa-comments"></i> AI 컨설턴트와 상담
+                        <button class="btn btn-primary" onclick="openClassConsultingChat()"
+                            style="background-color:#FDE047; color:#854D0E; border-color:#FACC15;">
+                            <i class="fa-solid fa-comments"></i> AI 컨설턴트와 상담(API 등록)
                         </button>
                         <button class="btn btn-outline-secondary" onclick="startClassGeminiConsulting()">
-                            <i class="fa-solid fa-window-restore"></i> 외부 AI 사이트로 이동하기
+                            <i class="fa-solid fa-window-restore"></i> AI 컨설턴트와 상담(API 미등록)
                         </button>
                     </div>
                 </header>
@@ -179,9 +190,10 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="high-risk-section" style="margin-top: 30px;">
-                    <h3 style="color:var(--text-main); margin-bottom: 15px;"><i class="fa-solid fa-triangle-exclamation" style="color:#E53E3E;"></i> 전문가 기준 관심 필요 학생</h3>
+                    <h3 style="color:var(--text-main); margin-bottom: 15px;"><i class="fa-solid fa-triangle-exclamation"
+                            style="color:#E53E3E;"></i> 전문가 기준 관심 필요 학생</h3>
                     <div id="highRiskList" class="risk-list-container">
                         <!-- JS Injection -->
                     </div>
@@ -190,7 +202,8 @@
 
             <!-- 5. 개인별 맞춤 컨설팅 -->
             <section id="personal-stats" class="page-section">
-                <header style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
+                <header
+                    style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
                     <div>
                         <h1>개인별 맞춤 컨설팅</h1>
                         <p>분석할 학생을 아래 목록에서 선택해주세요.</p>
@@ -198,15 +211,19 @@
                             <select id="studentSelect" class="form-select" style="margin-top:0;">
                                 <option value="">-- 학생을 선택하세요 --</option>
                             </select>
-                            <button class="btn btn-outline-tertiary btn-sm" onclick="window.print()"><i class="fa-solid fa-file-pdf"></i> 현재 학생 리포트 저장</button>
-                            <button class="btn btn-outline-primary btn-sm" onclick="downloadAllPersonalReports()"><i class="fa-solid fa-file-pdf"></i> 전체 학생 일괄 저장</button>
+                            <button class="btn btn-outline-tertiary btn-sm" onclick="window.print()"><i
+                                    class="fa-solid fa-file-pdf"></i> 현재 학생 리포트 저장</button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="downloadAllPersonalReports()"><i
+                                    class="fa-solid fa-file-pdf"></i> 전체 학생 일괄 저장</button>
                         </div>
                     </div>
                     <div class="risk-nav-wrapper" style="position:relative;">
                         <button id="btnRiskNav" class="btn btn-outline-danger btn-sm" onclick="toggleRiskDropdown()">
-                            <i class="fa-solid fa-triangle-exclamation"></i> 요주의 학생목록 <i class="fa-solid fa-caret-down"></i>
+                            <i class="fa-solid fa-triangle-exclamation"></i> 요주의 학생목록 <i
+                                class="fa-solid fa-caret-down"></i>
                         </button>
-                        <div id="riskDropdown" class="risk-dropdown" style="display:none; position:absolute; right:0; top:40px; width:300px; background:white; border:1px solid #ddd; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-radius:8px; z-index:100; max-height:400px; overflow-y:auto; padding:10px;">
+                        <div id="riskDropdown" class="risk-dropdown"
+                            style="display:none; position:absolute; right:0; top:40px; width:300px; background:white; border:1px solid #ddd; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-radius:8px; z-index:100; max-height:400px; overflow-y:auto; padding:10px;">
                             <!-- JS Injection -->
                         </div>
                     </div>
@@ -219,19 +236,24 @@
                             <h2 id="studentName">김학생</h2>
                             <p id="studentMeta">6학년 1반 1번</p>
                             <div class="badges" id="studentMbtiContainer" style="margin-top:10px;">
-                                <span class="badge" id="studentMbti" style="font-size:1.2rem; font-weight:800; padding:5px 10px;">MBTI: ENTP</span>
+                                <span class="badge" id="studentMbti"
+                                    style="font-size:1.2rem; font-weight:800; padding:5px 10px;">MBTI: ENTP</span>
                             </div>
                         </div>
                     </div>
                     <div class="profile-body" style="margin-top:20px;">
                         <!-- TABS HEADER -->
-                        <div class="profile-tabs" style="display:flex; gap:10px; border-bottom:2px solid #E2E8F0; margin-bottom:20px;">
-                            <button class="tab-btn active" data-tab="tab-summary" onclick="switchTab('tab-summary')">총평</button>
-                            <button class="tab-btn" data-tab="tab-happiness" onclick="switchTab('tab-happiness')">행복 6요소</button>
+                        <div class="profile-tabs"
+                            style="display:flex; gap:10px; border-bottom:2px solid #E2E8F0; margin-bottom:20px;">
+                            <button class="tab-btn active" data-tab="tab-summary"
+                                onclick="switchTab('tab-summary')">총평</button>
+                            <button class="tab-btn" data-tab="tab-happiness" onclick="switchTab('tab-happiness')">행복
+                                6요소</button>
                             <button class="tab-btn" data-tab="tab-mbti" onclick="switchTab('tab-mbti')">MBTI</button>
                             <button class="tab-btn" data-tab="tab-mi" onclick="switchTab('tab-mi')">다중지능</button>
                             <button class="tab-btn" data-tab="tab-adapt" onclick="switchTab('tab-adapt')">학교적응</button>
-                            <button class="tab-btn" data-tab="tab-survey" onclick="switchTab('tab-survey')">전체 설문조사 응답</button>
+                            <button class="tab-btn" data-tab="tab-survey" onclick="switchTab('tab-survey')">전체 설문조사
+                                응답</button>
                         </div>
 
                         <!-- TABS CONTENT -->
@@ -241,18 +263,27 @@
                                     <div class="text-card" id="studentSummary" style="height: 100%;">
                                         <!-- JS Injection -->
                                     </div>
-                                    <div class="chart-card ai-consult-card" style="margin-top:0; border-color:var(--primary-color); border-width: 2px; height: 100%; display: flex; flex-direction: column;">
+                                    <div class="chart-card ai-consult-card"
+                                        style="margin-top:0; border-color:var(--primary-color); border-width: 2px; height: 100%; display: flex; flex-direction: column;">
                                         <h3>🤖 AI 학생 맞춤 컨설턴트</h3>
-                                        <p style="text-align:center; color:var(--text-muted); font-size:0.95rem; margin-bottom:15px;">해당 학생의 정보와 설문 응답을 바탕으로 AI 컨설턴트와 지도 방안을 논의해 보세요.</p>
-                                        <div style="background:#F8FAFC; padding:20px; border-radius:8px; border:1px solid #E2E8F0; display:flex; flex-direction:column; align-items:center;">
-                                            <button class="btn btn-primary btn-lg" onclick="openStudentConsultingChat()" style="width:100%; max-width: 400px; justify-content:center; margin-bottom:10px; background-color:#FDE047; color:#854D0E; border-color:#FACC15;">
-                                                <i class="fa-solid fa-comments"></i> AI 컨설턴트와 상담
+                                        <p
+                                            style="text-align:center; color:var(--text-muted); font-size:0.95rem; margin-bottom:15px;">
+                                            해당 학생의 정보와 설문 응답을 바탕으로 AI 컨설턴트와 지도 방안을 논의해 보세요.</p>
+                                        <div
+                                            style="background:#F8FAFC; padding:20px; border-radius:8px; border:1px solid #E2E8F0; display:flex; flex-direction:column; align-items:center;">
+                                            <button class="btn btn-primary btn-lg" onclick="openStudentConsultingChat()"
+                                                style="width:100%; max-width: 400px; justify-content:center; margin-bottom:10px; background-color:#FDE047; color:#854D0E; border-color:#FACC15;">
+                                                <i class="fa-solid fa-comments"></i> AI 컨설턴트와 상담(API 등록)
                                             </button>
-                                            <button class="btn btn-outline-secondary btn-lg" onclick="startGeminiConsulting()" style="width:100%; max-width: 400px; justify-content:center; margin-bottom:10px;">
-                                                <i class="fa-solid fa-window-restore"></i> 외부 AI 사이트로 이동하기
+                                            <button class="btn btn-outline-secondary btn-lg"
+                                                onclick="startGeminiConsulting()"
+                                                style="width:100%; max-width: 400px; justify-content:center; margin-bottom:10px;">
+                                                <i class="fa-solid fa-window-restore"></i> AI 컨설턴트와 상담(API 미등록)
                                             </button>
-                                            <p style="font-size:0.85rem; color:var(--text-muted); text-align:center; margin:0;">
-                                                <i class="fa-solid fa-circle-info"></i> 내 API Key를 설정하시면 앱 내에서 카카오톡처럼 바로 대화가 가능합니다.<br>
+                                            <p
+                                                style="font-size:0.85rem; color:var(--text-muted); text-align:center; margin:0;">
+                                                <i class="fa-solid fa-circle-info"></i> 내 API Key를 설정하시면 앱 내에서 카카오톡처럼 바로
+                                                대화가 가능합니다.<br>
                                                 API가 없으시다면 외부 제미나이로 이동하여 복사된 내용을 붙여넣으세요.
                                             </p>
                                         </div>
@@ -268,13 +299,14 @@
                                     </div>
                                     <div class="chart-card">
                                         <h3>행복 6요소 관련 설문 응답</h3>
-                                        <div id="studentHappinessRaw" style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                        <div id="studentHappinessRaw"
+                                            style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
                                             <!-- JS Injection -->
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div id="tab-mbti" class="tab-pane" style="display:none;">
                                 <div class="charts-wrap">
                                     <div class="chart-card">
@@ -285,13 +317,14 @@
                                     </div>
                                     <div class="chart-card">
                                         <h3>MBTI 관련 설문 응답</h3>
-                                        <div id="studentMbtiRaw" style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                        <div id="studentMbtiRaw"
+                                            style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
                                             <!-- JS Injection -->
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div id="tab-mi" class="tab-pane" style="display:none;">
                                 <div class="charts-wrap">
                                     <div class="chart-card">
@@ -300,13 +333,14 @@
                                     </div>
                                     <div class="chart-card">
                                         <h3>다중지능 관련 설문 응답</h3>
-                                        <div id="studentMiRaw" style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                        <div id="studentMiRaw"
+                                            style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
                                             <!-- JS Injection -->
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div id="tab-adapt" class="tab-pane" style="display:none;">
                                 <div class="charts-wrap">
                                     <div class="chart-card">
@@ -315,13 +349,14 @@
                                     </div>
                                     <div class="chart-card">
                                         <h3>학교적응력 관련 설문 응답</h3>
-                                        <div id="studentAdaptRaw" style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                        <div id="studentAdaptRaw"
+                                            style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
                                             <!-- JS Injection -->
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div id="tab-survey" class="tab-pane" style="display:none;">
                                 <div class="chart-card">
                                     <h3>설문조사 원본 응답</h3>
@@ -337,7 +372,8 @@
 
             <!-- 6. AI 행동발달 생성기 -->
             <section id="ai-generator" class="page-section">
-                <header style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:15px;">
+                <header
+                    style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:15px;">
                     <div>
                         <h1>AI 행동발달문장 생성기</h1>
                         <p>추출된 키워드를 토글(클릭)하여 원하는 단어만으로 맞춤 프롬프트를 만드세요.</p>
@@ -346,13 +382,18 @@
                     </div>
                 </header>
 
-                <div class="ai-setup-card" style="background:var(--card-bg); padding:20px; border-radius:12px; border:1px solid var(--border-color); margin-top:20px; box-shadow:0 2px 8px rgba(0,0,0,0.02)">
-                    <h3 style="margin-bottom:15px; color:var(--primary-color);"><i class="fa-solid fa-sliders"></i> AI 프롬프트 세부 설정</h3>
+                <div class="ai-setup-card"
+                    style="background:var(--card-bg); padding:20px; border-radius:12px; border:1px solid var(--border-color); margin-top:20px; box-shadow:0 2px 8px rgba(0,0,0,0.02)">
+                    <h3 style="margin-bottom:15px; color:var(--primary-color);"><i class="fa-solid fa-sliders"></i> AI
+                        프롬프트 세부 설정</h3>
                     <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start;">
                         <div style="flex:1; min-width:200px;">
-                            <label style="display:block; font-weight:600; margin-bottom:5px;">대상 학년 (미입력시 메타데이터 기반)</label>
+                            <label style="display:block; font-weight:600; margin-bottom:5px;">대상 학년 (미입력시 메타데이터
+                                기반)</label>
                             <div style="display:flex; gap:10px;">
-                                <input type="text" id="aiGradeSetup" list="grade-list" class="form-select" style="width:100%; margin-top:0; padding:8px;" placeholder="선택 또는 직접 입력 (예: 초등학교 6학년)">
+                                <input type="text" id="aiGradeSetup" list="grade-list" class="form-select"
+                                    style="width:100%; margin-top:0; padding:8px;"
+                                    placeholder="선택 또는 직접 입력 (예: 초등학교 6학년)">
                                 <datalist id="grade-list">
                                     <option value="초등학교 1학년">
                                     <option value="초등학교 2학년">
@@ -372,47 +413,71 @@
                         <div style="flex:1; min-width:200px;" id="aiLengthContainer">
                             <label style="display:block; font-weight:600; margin-bottom:5px;">기본 문장 분량 (자)</label>
                             <div style="display:flex; align-items:center; gap:5px;">
-                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustAiLength(-50)" style="padding:8px 12px;"><i class="fa-solid fa-minus"></i></button>
-                                <input type="number" id="aiLengthSetup" class="form-select" style="flex:1; margin-top:0; padding:8px; text-align:center;" value="300" onchange="syncTerm1Length()">
-                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustAiLength(50)" style="padding:8px 12px;"><i class="fa-solid fa-plus"></i></button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustAiLength(-50)"
+                                    style="padding:8px 12px;"><i class="fa-solid fa-minus"></i></button>
+                                <input type="number" id="aiLengthSetup" class="form-select"
+                                    style="flex:1; margin-top:0; padding:8px; text-align:center;" value="300"
+                                    onchange="syncTerm1Length()">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustAiLength(50)"
+                                    style="padding:8px 12px;"><i class="fa-solid fa-plus"></i></button>
                             </div>
                         </div>
                     </div>
                     <div style="margin-top:15px; border-top:1px dashed var(--border-color); padding-top:15px;">
-                        <label style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; color:var(--text-main);">
-                            <input type="checkbox" id="aiSecondSemesterCheck" onchange="toggleSecondSemester()" style="width:18px; height:18px; accent-color:var(--primary-color);"> 
+                        <label
+                            style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; color:var(--text-main);">
+                            <input type="checkbox" id="aiSecondSemesterCheck" onchange="toggleSecondSemester()"
+                                style="width:18px; height:18px; accent-color:var(--primary-color);">
                             2학기용 미리 생성 (1학기와 내용 겹치지 않도록 분리 생산)
                         </label>
-                        <div id="secondSemesterSetup" style="display:none; margin-top:10px; background:#F8FAFC; padding:15px; border-radius:8px; border:1px solid var(--border-color);">
+                        <div id="secondSemesterSetup"
+                            style="display:none; margin-top:10px; background:#F8FAFC; padding:15px; border-radius:8px; border:1px solid var(--border-color);">
                             <div style="display:flex; gap:15px;">
                                 <div style="flex:1;">
-                                    <label style="display:block; font-size:0.9rem; color:var(--text-muted); margin-bottom:5px;">1학기 분량 (자)</label>
-                                    <input type="number" id="aiTerm1Length" class="form-select" style="width:100%; margin-top:0; padding:8px;" value="200">
+                                    <label
+                                        style="display:block; font-size:0.9rem; color:var(--text-muted); margin-bottom:5px;">1학기
+                                        분량 (자)</label>
+                                    <input type="number" id="aiTerm1Length" class="form-select"
+                                        style="width:100%; margin-top:0; padding:8px;" value="200">
                                 </div>
                                 <div style="flex:1;">
-                                    <label style="display:block; font-size:0.9rem; color:var(--text-muted); margin-bottom:5px;">2학기 분량 (자)</label>
-                                    <input type="number" id="aiTerm2Length" class="form-select" style="width:100%; margin-top:0; padding:8px;" value="200">
+                                    <label
+                                        style="display:block; font-size:0.9rem; color:var(--text-muted); margin-bottom:5px;">2학기
+                                        분량 (자)</label>
+                                    <input type="number" id="aiTerm2Length" class="form-select"
+                                        style="width:100%; margin-top:0; padding:8px;" value="200">
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div style="margin-top:15px;">
-                        <label style="display:block; font-weight:600; margin-bottom:5px;">사용자 개별 요구사항 (선택적 추가 명령)</label>
-                        <textarea id="aiCustomRequest" class="form-select" style="width:100%; margin-top:0; height:80px; resize:vertical; font-size:0.95rem; padding:10px;" placeholder="예: 상담 내용을 반영해줘 / 모든 문장을 '~함'으로 끝내줘 / 친근한 느낌이 나게 해줘"></textarea>
+                        <label style="display:block; font-weight:600; margin-bottom:5px;">사용자 개별 요구사항 (선택적 추가
+                            명령)</label>
+                        <textarea id="aiCustomRequest" class="form-select"
+                            style="width:100%; margin-top:0; height:80px; resize:vertical; font-size:0.95rem; padding:10px;"
+                            placeholder="예: 상담 내용을 반영해줘 / 모든 문장을 '~함'으로 끝내줘 / 친근한 느낌이 나게 해줘"></textarea>
                     </div>
                 </div>
 
-                <div class="controls-bar" style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#F8FAFC; padding:15px; border-radius:8px;">
+                <div class="controls-bar"
+                    style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#F8FAFC; padding:15px; border-radius:8px;">
                     <div style="display:flex; gap:10px; align-items:center;">
-                        <button class="btn btn-outline-primary" id="copyAllPromptBtn"><i class="fa-solid fa-arrow-up-right-from-square"></i> 외부AI사이트에서 생성</button>
-                        <span id="apiStatusBadge" class="badge" style="background:#E2E8F0; color:var(--text-muted); border:1px solid #CBD5E1;">API 미설정</span>
-                        <button class="btn btn-primary" id="generateAllBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> 일괄 자동생성</button>
+                        <button class="btn btn-outline-primary" id="copyAllPromptBtn"><i
+                                class="fa-solid fa-arrow-up-right-from-square"></i> 외부AI사이트에서 생성</button>
+                        <span id="apiStatusBadge" class="badge"
+                            style="background:#E2E8F0; color:var(--text-muted); border:1px solid #CBD5E1;">API
+                            미설정</span>
+                        <button class="btn btn-primary" id="generateAllBtn"><i
+                                class="fa-solid fa-wand-magic-sparkles"></i> 일괄 자동생성</button>
                     </div>
-                    <button class="btn btn-outline-success" onclick="downloadAiResults()"><i class="fa-solid fa-file-excel"></i> 엑셀 다운로드</button>
+                    <button class="btn btn-outline-success" onclick="downloadAiResults()"><i
+                            class="fa-solid fa-file-excel"></i> 엑셀 다운로드</button>
                 </div>
 
                 <div class="table-container" style="margin-top: 25px; overflow-x:auto;">
-                    <p style="margin-bottom: 10px; font-size:0.9rem; color:var(--info);"><i class="fa-solid fa-mouse-pointer"></i> <strong>배지(키워드)를 클릭해 보세요!</strong> 프롬프트에 포함할 키워드를 끄고 켤 수 있습니다. (회색=제외됨)</p>
+                    <p style="margin-bottom: 10px; font-size:0.9rem; color:var(--info);"><i
+                            class="fa-solid fa-mouse-pointer"></i> <strong>배지(키워드)를 클릭해 보세요!</strong> 프롬프트에 포함할 키워드를 끄고
+                        켤 수 있습니다. (회색=제외됨)</p>
                     <table id="aiDataTable" style="min-width: 1000px;">
                         <thead>
                             <tr>
@@ -420,18 +485,36 @@
                                 <th width="8%">학생</th>
                                 <th width="28%">
                                     선택된 강점 키워드 (15개 내외)
-                                    <div style="display:flex; align-items:center; gap:5px; margin-top:5px; font-weight:normal;">
-                                        <input type="number" id="randomCountStrength" class="form-select" style="width:60px; padding:2px 5px; margin:0; font-size:0.85rem;" placeholder="개수" value="10">
-                                        <button class="btn btn-outline-primary btn-sm" onclick="promptRandomKeywords('strength')" style="font-size:0.75rem; padding:4px 8px;" title="지정한 개수만큼 랜덤 선택"><i class="fa-solid fa-dice"></i></button>
-                                        <button class="btn btn-outline-secondary btn-sm" onclick="selectAllKeywords('strength')" style="font-size:0.75rem; padding:4px 8px;" title="전체 선택"><i class="fa-solid fa-check-double"></i></button>
+                                    <div
+                                        style="display:flex; align-items:center; gap:5px; margin-top:5px; font-weight:normal;">
+                                        <input type="number" id="randomCountStrength" class="form-select"
+                                            style="width:60px; padding:2px 5px; margin:0; font-size:0.85rem;"
+                                            placeholder="개수" value="10">
+                                        <button class="btn btn-outline-primary btn-sm"
+                                            onclick="promptRandomKeywords('strength')"
+                                            style="font-size:0.75rem; padding:4px 8px;" title="지정한 개수만큼 랜덤 선택"><i
+                                                class="fa-solid fa-dice"></i></button>
+                                        <button class="btn btn-outline-secondary btn-sm"
+                                            onclick="selectAllKeywords('strength')"
+                                            style="font-size:0.75rem; padding:4px 8px;" title="전체 선택"><i
+                                                class="fa-solid fa-check-double"></i></button>
                                     </div>
                                 </th>
                                 <th width="15%">
                                     선택된 보완 키워드 (5개 이하)
-                                    <div style="display:flex; align-items:center; gap:5px; margin-top:5px; font-weight:normal;">
-                                        <input type="number" id="randomCountWeakness" class="form-select" style="width:60px; padding:2px 5px; margin:0; font-size:0.85rem;" placeholder="개수" value="2">
-                                        <button class="btn btn-outline-primary btn-sm" onclick="promptRandomKeywords('weakness')" style="font-size:0.75rem; padding:4px 8px;" title="지정한 개수만큼 랜덤 선택"><i class="fa-solid fa-dice"></i></button>
-                                        <button class="btn btn-outline-secondary btn-sm" onclick="selectAllKeywords('weakness')" style="font-size:0.75rem; padding:4px 8px;" title="전체 선택"><i class="fa-solid fa-check-double"></i></button>
+                                    <div
+                                        style="display:flex; align-items:center; gap:5px; margin-top:5px; font-weight:normal;">
+                                        <input type="number" id="randomCountWeakness" class="form-select"
+                                            style="width:60px; padding:2px 5px; margin:0; font-size:0.85rem;"
+                                            placeholder="개수" value="2">
+                                        <button class="btn btn-outline-primary btn-sm"
+                                            onclick="promptRandomKeywords('weakness')"
+                                            style="font-size:0.75rem; padding:4px 8px;" title="지정한 개수만큼 랜덤 선택"><i
+                                                class="fa-solid fa-dice"></i></button>
+                                        <button class="btn btn-outline-secondary btn-sm"
+                                            onclick="selectAllKeywords('weakness')"
+                                            style="font-size:0.75rem; padding:4px 8px;" title="전체 선택"><i
+                                                class="fa-solid fa-check-double"></i></button>
                                     </div>
                                 </th>
                                 <th width="12%" style="line-height:1.2;">개별생성<br><small>외부AI웹</small></th>
@@ -473,27 +556,39 @@
             <!-- API Setup Modal -->
             <div id="apiSetupModal" class="modal-overlay" style="display:none; z-index: 9999;">
                 <div class="modal-content" style="max-width: 500px; width: 90%;">
-                    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
-                        <h2 style="margin: 0; font-size: 1.3rem;"><i class="fa-solid fa-key" style="color:var(--primary-color)"></i> 글로벌 API 키 설정</h2>
-                        <button onclick="closeApiModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+                    <div class="modal-header"
+                        style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+                        <h2 style="margin: 0; font-size: 1.3rem;"><i class="fa-solid fa-key"
+                                style="color:var(--primary-color)"></i> 글로벌 API 키 설정</h2>
+                        <button onclick="closeApiModal()"
+                            style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <div style="background:#F0FDF4; border:1px solid #BBF7D0; padding:15px; border-radius:8px; margin-bottom:15px; font-size:0.9rem; color:#166534;">
+                        <div
+                            style="background:#F0FDF4; border:1px solid #BBF7D0; padding:15px; border-radius:8px; margin-bottom:15px; font-size:0.9rem; color:#166534;">
                             <strong><i class="fa-solid fa-circle-question"></i> API 키 발급 방법 안내</strong>
                             <ol style="margin-top:10px; padding-left:20px; line-height:1.6;">
-                                <li>구글 계정으로 로그인 후 <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#059669; font-weight:bold; text-decoration:underline;">Google AI Studio 발급 페이지 [클릭하여 이동]</a>에 접속합니다.</li>
+                                <li>구글 계정으로 로그인 후 <a href="https://aistudio.google.com/app/apikey" target="_blank"
+                                        style="color:#059669; font-weight:bold; text-decoration:underline;">Google AI
+                                        Studio 발급 페이지 [클릭하여 이동]</a>에 접속합니다.</li>
                                 <li>좌측 상단 <strong>[Get API Key]</strong>를 클릭합니다.</li>
                                 <li><strong>[Create API key in real project]</strong> 버튼을 눌러 키를 생성/복사합니다.</li>
                             </ol>
                         </div>
                         <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
-                            제미나이(Gemini) API 키를 입력하시면 앱 내에서 즉시 <strong>학급 상담, 개인 컨설팅, 행발 자동 생성</strong> 기능을 이용하실 수 있습니다.<br>
-                            <span style="color: #E53E3E; font-weight: bold; margin-top:5px; display:inline-block;"><i class="fa-solid fa-triangle-exclamation"></i> 입력해주신 API 키는 선생님의 브라우저 메모리에만 일시적으로 유지되며, 서버나 그 어디에도 결코 저장되지 않습니다. (새로고침 시 초기화됨)</span>
+                            제미나이(Gemini) API 키를 입력하시면 앱 내에서 즉시 <strong>학급 상담, 개인 컨설팅, 행발 자동 생성</strong> 기능을 이용하실 수
+                            있습니다.<br>
+                            <span style="color: #E53E3E; font-weight: bold; margin-top:5px; display:inline-block;"><i
+                                    class="fa-solid fa-triangle-exclamation"></i> 입력해주신 API 키는 선생님의 브라우저 메모리에만 일시적으로
+                                유지되며, 서버나 그 어디에도 결코 저장되지 않습니다. (새로고침 시 초기화됨)</span>
                         </p>
-                        <input type="password" id="globalApiKeyInput" class="form-select" style="width: 100%; margin-top:0;" placeholder="발급받은 Gemini API 키 붙여넣기...">
+                        <input type="password" id="globalApiKeyInput" class="form-select"
+                            style="width: 100%; margin-top:0;" placeholder="발급받은 Gemini API 키 붙여넣기...">
                     </div>
-                    <div class="modal-footer" style="text-align: right; margin-top: 25px; display:flex; justify-content: space-between;">
-                        <button onclick="resetApiKey()" class="btn btn-outline-danger"><i class="fa-solid fa-trash-can"></i> 키 초기화</button>
+                    <div class="modal-footer"
+                        style="text-align: right; margin-top: 25px; display:flex; justify-content: space-between;">
+                        <button onclick="resetApiKey()" class="btn btn-outline-danger"><i
+                                class="fa-solid fa-trash-can"></i> 키 초기화</button>
                         <div style="display:flex; gap:10px;">
                             <button onclick="closeApiModal()" class="btn btn-secondary">취소</button>
                             <button onclick="saveApiKey()" class="btn btn-primary">확인 (임시 적용)</button>
@@ -504,17 +599,29 @@
 
             <!-- AI External Sites Modal -->
             <div id="aiSiteModal" class="modal-overlay" style="display:none; z-index: 10000;">
-                <div class="modal-content" style="max-width: 400px; width: 90%; text-align: center; position: relative;">
-                    <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+                <div class="modal-content"
+                    style="max-width: 400px; width: 90%; text-align: center; position: relative;">
+                    <div class="modal-header"
+                        style="border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
                         <h2 style="margin: 0; font-size: 1.3rem; color:var(--text-main);">정보가 클립보드에 복사되었습니다!</h2>
-                        <p id="aiSiteModalMessage" style="color:var(--text-muted); font-size:0.95rem; margin-top:5px;">원하시는 AI 사이트로 이동하여 붙여넣기(Ctrl+V) 하세요.</p>
-                        <button onclick="closeAiSiteModal()" style="position:absolute; top:15px; right:15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+                        <p id="aiSiteModalMessage" style="color:var(--text-muted); font-size:0.95rem; margin-top:5px;">
+                            원하시는 AI 사이트로 이동하여 붙여넣기(Ctrl+V) 하세요.</p>
+                        <button onclick="closeAiSiteModal()"
+                            style="position:absolute; top:15px; right:15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
                     </div>
                     <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
-                        <button class="btn btn-outline-primary btn-lg" onclick="openAiSite('https://chat.openai.com')" style="justify-content:center; width:100%;"><i class="fa-solid fa-comment-dots"></i> ChatGPT 열기</button>
-                        <button class="btn btn-outline-primary btn-lg" onclick="openAiSite('https://claude.ai')" style="justify-content:center; width:100%;"><i class="fa-solid fa-robot"></i> Claude 열기</button>
-                        <button class="btn btn-outline-primary btn-lg" onclick="openAiSite('https://gemini.google.com')" style="justify-content:center; width:100%;"><i class="fa-solid fa-sparkles"></i> Gemini 열기</button>
-                        <button class="btn btn-outline-primary btn-lg" onclick="openAiSite('https://grok.com')" style="justify-content:center; width:100%;"><i class="fa-solid fa-bolt"></i> Grok 열기</button>
+                        <button class="btn btn-outline-primary btn-lg" onclick="openAiSite('https://chat.openai.com')"
+                            style="justify-content:center; width:100%;"><i class="fa-solid fa-comment-dots"></i> ChatGPT
+                            열기</button>
+                        <button class="btn btn-outline-primary btn-lg" onclick="openAiSite('https://claude.ai')"
+                            style="justify-content:center; width:100%;"><i class="fa-solid fa-robot"></i> Claude
+                            열기</button>
+                        <button class="btn btn-outline-primary btn-lg" onclick="openAiSite('https://gemini.google.com')"
+                            style="justify-content:center; width:100%;"><i class="fa-solid fa-sparkles"></i> Gemini
+                            열기</button>
+                        <button class="btn btn-outline-primary btn-lg" onclick="openAiSite('https://grok.com')"
+                            style="justify-content:center; width:100%;"><i class="fa-solid fa-bolt"></i> Grok
+                            열기</button>
                     </div>
                 </div>
             </div>
@@ -527,18 +634,27 @@
                             <i class="fa-solid fa-comments"></i> <span id="chatTitle">AI 컨설턴트</span>
                         </div>
                         <div class="chat-actions">
-                            <button class="btn btn-outline-primary btn-sm chat-action-btn" onclick="requestChatAction('summary')" title="현재 대화 요약"><i class="fa-solid fa-compress"></i> 요약</button>
-                            <button class="btn btn-outline-secondary btn-sm chat-action-btn" onclick="requestChatAction('organize')" title="항목별 정리"><i class="fa-solid fa-list-check"></i> 정리</button>
-                            <button class="btn btn-outline-tertiary btn-sm chat-action-btn" onclick="downloadChatHistory()" title="대화 내역 텍스트 다운로드"><i class="fa-solid fa-download"></i> 다운로드</button>
+                            <button class="btn btn-outline-primary btn-sm chat-action-btn"
+                                onclick="requestChatAction('summary')" title="현재 대화 요약"><i
+                                    class="fa-solid fa-compress"></i> 요약</button>
+                            <button class="btn btn-outline-secondary btn-sm chat-action-btn"
+                                onclick="requestChatAction('organize')" title="항목별 정리"><i
+                                    class="fa-solid fa-list-check"></i> 정리</button>
+                            <button class="btn btn-outline-tertiary btn-sm chat-action-btn"
+                                onclick="downloadChatHistory()" title="대화 내역 텍스트 다운로드"><i
+                                    class="fa-solid fa-download"></i> 다운로드</button>
                             <button class="close-chat-btn" onclick="closeChatOverlay()">&times;</button>
                         </div>
                     </div>
                     <div class="chat-body" id="chatBody">
-                        <div class="chat-bubble bot-bubble">안녕하세요! 선생님과 학급, 그리고 학생들을 위해 맞춤형 교육 컨설팅을 도와드릴 AI입니다. 어떤 점이 궁금하신가요?</div>
+                        <div class="chat-bubble bot-bubble">안녕하세요! 선생님과 학급, 그리고 학생들을 위해 맞춤형 교육 컨설팅을 도와드릴 AI입니다. 어떤 점이
+                            궁금하신가요?</div>
                     </div>
                     <div class="chat-footer">
-                        <textarea id="chatInput" placeholder="메시지를 입력하세요... (Enter로 전송, Shift+Enter로 줄바꿈)" rows="1"></textarea>
-                        <button id="chatSendBtn" onclick="sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+                        <textarea id="chatInput" placeholder="메시지를 입력하세요... (Enter로 전송, Shift+Enter로 줄바꿈)"
+                            rows="1"></textarea>
+                        <button id="chatSendBtn" onclick="sendChatMessage()"><i
+                                class="fa-solid fa-paper-plane"></i></button>
                     </div>
                 </div>
             </div>
