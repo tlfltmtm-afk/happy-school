@@ -210,7 +210,7 @@ function populateAiTable() {
             <td><strong>${name}</strong><br><small style="color:var(--text-muted)">${meta}</small></td>
             <td id="ai-strengths-${index}">${strengthsHtml}</td>
             <td id="ai-weaknesses-${index}">${weaknessesHtml}</td>
-            <td><button class="btn btn-outline-primary btn-sm" onclick="copyManualPrompt(${index})" style="width:100%"><i class="fa-solid fa-copy"></i> 수동 복사</button></td>
+            <td><button class="btn btn-outline-primary btn-sm" onclick="copyManualPrompt(${index})" style="width:100%"><i class="fa-solid fa-copy"></i> 외부AI웹</button></td>
             <td><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})"><i class="fa-solid fa-robot"></i></button></td>
             <td id="ai-result-${index}" style="font-size:0.95rem; line-height:1.5; color:var(--text-muted);">
                 [대기중] API Key 입력 후 클릭
@@ -310,21 +310,32 @@ window.generateAiText = function(index) {
 
 document.getElementById('generateAllBtn').addEventListener('click', () => {
     if(parsedData.length === 0) return alert("데이터를 먼저 분석해주세요.");
+    
+    const apiKey = document.getElementById('apiKeyInput')?.value || globalApiKey;
+    if(!apiKey) {
+        alert("글로벌 API 키 설정이 먼저 필요합니다. 좌측 톱니바퀴 또는 '내 API Key 설정' 버튼을 눌러 API 키를 먼저 등록해주세요.");
+        return;
+    }
+    
+    if(!confirm(`목록 내 모든 학생(${parsedData.length}명)의 행동발달사항을 일괄 자동생성 하시겠습니까?\n\n생성 도중 창을 닫거나 새로고침하지 마세요.`)) {
+        return;
+    }
+
     for(let i=0; i<parsedData.length; i++) {
         setTimeout(()=>{
             window.generateAiText(i);
-        }, i*300); 
+        }, i*500); 
     }
 });
 
 document.getElementById('copyAllPromptBtn').addEventListener('click', () => {
     if(parsedData.length === 0) return alert("데이터가 없습니다.");
-    let text = "이름\t소속\tAI 수동생성용 프롬프트 명령어\n";
+    let text = "";
     parsedData.forEach((row, index) => {
-        const prompt = generateManualPromptText(index).replace(/\n/g, " "); // Replace newlines for excel
-        text += `${getStudentName(row)}\t${getStudentMeta(row)}\t${prompt}\n`;
+        const prompt = generateManualPromptText(index);
+        text += `[학생번호: ${index + 1}번] ================================\n${prompt}\n\n`;
     });
-    openAiSiteModal(text, "전체 학생의 [수동 프롬프트]가 엑셀 붙여넣기 형태로 클립보드에 복사되었습니다.");
+    openAiSiteModal(text, "전체 학생에 대한 행발생성 프롬프트 정보가 한 번에 복사되었습니다!\n사이트로 이동하여 복사(Ctrl+V)하여 생성을 이어가세요.");
 });
 
 
@@ -888,21 +899,61 @@ window.startClassGeminiConsulting = function() {
     });
 
     const topMbti = Object.entries(allMbti).sort((a,b) => b[1]-a[1]).slice(0,3).map(e=>e[0]).join(', ');
-    const topStrengths = Object.entries(allStrengths).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>e[0]).join(', ');
-    const topWeaknesses = Object.entries(allWeaknesses).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>e[0]).join(', ');
+    const topStrengths = Object.entries(allStrengths).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>`${e[0]}(${e[1]}명)`).join(', ');
+    const topWeaknesses = Object.entries(allWeaknesses).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>`${e[0]}(${e[1]}명)`).join(', ');
 
-    const prompt = `당신은 초등학교 학급 경영 및 학생 교육을 돕는 따뜻하고 전문적인 교육 AI 컨설턴트입니다.
-다음은 제가 맡고 있는 학급(${totalStudents}명)의 다면적 심리 및 학교생활 설문 종합 데이터 요약입니다.
-이를 분석하여, 활기차고 행복한 학급 문화를 만들기 위해 오늘 당장 제가 학급에서 실천할 수 있는 구체적인 학급 경영 및 지도 팁을 3가지 이상 제시해주세요.
+    // Extract factor averages if available in SURVEY_DATA
+    let factorStr = "";
+    let version = 'v3';
+    let sampleRow = parsedData[0];
+    let gradeStr = String(sampleRow['학년'] || Object.values(sampleRow)[0] || "5");
+    if(gradeStr.includes('1') || gradeStr.includes('2')) version = 'v1';
+    else if(gradeStr.includes('3') || gradeStr.includes('4')) version = 'v2';
+    
+    if(typeof MAPPING_DATA !== 'undefined') {
+        factorStr += "\n[요인별 정량 통계 (5점 만점 환산 추정)]\n";
+        let factorScores = {};
+        let factorCounts = {};
+        
+        parsedData.forEach(row => {
+            const rowVals = Object.values(row);
+            Object.keys(MAPPING_DATA).forEach(cat => {
+                if(cat==='MBTI') return;
+                Object.keys(MAPPING_DATA[cat]).forEach(sub => {
+                    const qNums = MAPPING_DATA[cat][sub][version];
+                    if(!qNums) return;
+                    qNums.forEach(qNum => {
+                        const valMatch = String(rowVals[3+qNum]).match(/\d+/);
+                        if(valMatch) {
+                            const measureName = `[${cat}] ${sub}`;
+                            factorScores[measureName] = (factorScores[measureName] || 0) + parseInt(valMatch[0], 10);
+                            factorCounts[measureName] = (factorCounts[measureName] || 0) + 1;
+                        }
+                    });
+                });
+            });
+        });
+        
+        Object.keys(factorScores).forEach(key => {
+            const avg = (factorScores[key] / factorCounts[key]).toFixed(2);
+            factorStr += `- ${key}: 평균 ${avg}점\n`;
+        });
+    }
+
+    const prompt = `당신은 초등학교 학급 경영 및 학생 교육을 돕는 심층적이고 전문적인 교육 AI 컨설턴트입니다.
+다음은 제가 맡고 있는 학급(${totalStudents}명)의 다면적 심리 및 학교생활 설문 종합 데이터 상세 요약(정량적 통계 포함)입니다.
+이를 심층 분석하여, 활기차고 안정적인 학급 문화를 만들기 위해 오늘 당장 제가 학급에서 실천할 수 있는 구체적인 관리 및 지도 팁 3가지(또는 그 이상)를 제시해주세요.
 
 [학급 종합 요약 정보]
 - 총 인원: ${totalStudents}명
-- 학급 내 주요 순위 성향(MBTI): ${topMbti || '데이터 부족'}
-- 학급 전체에서 두드러지는 공통 강점들: ${topStrengths || '데이터 부족'}
-- 학급 전체에서 주의 깊게 살펴보고 보완해야 할 점들: ${topWeaknesses || '데이터 부족'}
+- 학급 내 선호 MBTI 유형 등역: ${topMbti || '데이터 부족'}
+- 학급 전체에서 두드러지는 공통 강점들 (선택 인원): ${topStrengths || '데이터 부족'}
+- 학급 전체에서 주의 깊게 살펴보고 보완해야 할 점들 (선택 인원): ${topWeaknesses || '데이터 부족'}
+${factorStr}
 
-어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시고, 
-개별 학생이 아닌 '학급 전체'를 대상으로 한 학급 경영, 분위기 쇄신, 모둠 활동 구성 등에 관한 실질적인 아이디어에 초점을 맞춰주세요.`;
+추가로, 위 요인별 문항 매핑(정량 분석) 지표 중 상대적으로 수치가 가장 낮거나 보완이 절실해 보이는 영역을 1~2가지 꼭 집어내어,
+이를 극복할 수 있는 전체 학급 차원의 협동 활동이나 조종례 시간 활용 팁을 포함해주세요.
+어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시길 바랍니다.`;
 
     openAiSiteModal(prompt, "학급 전체 요약 정보와 컨설팅 프롬프트가 복사되었습니다!");
 };
@@ -1392,6 +1443,17 @@ window.downloadAllPersonalReports = function() {
 
 // Data Backup (Export/Download JSON)
 window.exportData = function() {
+    if(parsedData.length === 0 && chatHistory.length === 0) {
+        return alert("백업할 데이터가 아직 없습니다. 학생 데이터를 분석하거나 작업을 진행한 후 백업해주세요.");
+    }
+
+    const defaultFileName = `해피스쿨_백업데이터_${new Date().toISOString().slice(0,10)}`;
+    const userFileName = prompt(`백업 파일을 생성합니다.\n저장할 파일 이름을 입력해주세요.\n(데이터를 백업해두시면 언제든 이전 작업 상태, AI 생성결과, 설정, 대화 기록 등을 다시 불러와서 이어서 작업하실 수 있습니다.)`, defaultFileName);
+    
+    if(userFileName === null) return; // cancelled
+    
+    const finalFileName = userFileName.trim() ? userFileName.trim() : defaultFileName;
+
     const backupData = {
         timestamp: new Date().toISOString(),
         parsedData: parsedData,
@@ -1412,7 +1474,7 @@ window.exportData = function() {
     
     const a = document.createElement("a");
     a.href = url;
-    a.download = `해피스쿨_백업데이터_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `${finalFileName}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1423,6 +1485,11 @@ window.exportData = function() {
 window.importData = function(event) {
     const file = event.target.files[0];
     if(!file) return;
+
+    if(!confirm("불러오기를 진행하시면 현재 입력된 분석 데이터와 작업 내역이 모두 초기화되고, 백업 파일 내용으로 덮어씌워집니다.\n계속 진행하시겠습니까?")) {
+        event.target.value = ''; // reset so same file can be triggered again
+        return;
+    }
 
     const reader = new FileReader();
     reader.onload = function(e) {

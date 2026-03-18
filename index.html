@@ -381,7 +381,7 @@
                     <div style="margin-top:15px; border-top:1px dashed var(--border-color); padding-top:15px;">
                         <label style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; color:var(--text-main);">
                             <input type="checkbox" id="aiSecondSemesterCheck" onchange="toggleSecondSemester()" style="width:18px; height:18px; accent-color:var(--primary-color);"> 
-                            <span class="badge" style="background:#FEF3C7; color:#B45309;">New</span> 2학기용 미리 생성 (1학기와 내용 겹치지 않도록 분리 생산)
+                            2학기용 미리 생성 (1학기와 내용 겹치지 않도록 분리 생산)
                         </label>
                         <div id="secondSemesterSetup" style="display:none; margin-top:10px; background:#F8FAFC; padding:15px; border-radius:8px; border:1px solid var(--border-color);">
                             <div style="display:flex; gap:15px;">
@@ -404,9 +404,9 @@
 
                 <div class="controls-bar" style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#F8FAFC; padding:15px; border-radius:8px;">
                     <div style="display:flex; gap:10px; align-items:center;">
-                        <button class="btn btn-outline-primary" id="copyAllPromptBtn"><i class="fa-solid fa-copy"></i> 전체 학생 수동생성용 명령어 엑셀 복사</button>
+                        <button class="btn btn-outline-primary" id="copyAllPromptBtn"><i class="fa-solid fa-arrow-up-right-from-square"></i> 외부AI사이트에서 생성</button>
                         <span id="apiStatusBadge" class="badge" style="background:#E2E8F0; color:var(--text-muted); border:1px solid #CBD5E1;">API 미설정</span>
-                        <button class="btn btn-primary" id="generateAllBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> 글로벌 API로 전체 자동 생성</button>
+                        <button class="btn btn-primary" id="generateAllBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> 일괄 자동생성</button>
                     </div>
                     <button class="btn btn-outline-success" onclick="downloadAiResults()"><i class="fa-solid fa-file-excel"></i> 엑셀 다운로드</button>
                 </div>
@@ -434,7 +434,7 @@
                                         <button class="btn btn-outline-secondary btn-sm" onclick="selectAllKeywords('weakness')" style="font-size:0.75rem; padding:4px 8px;" title="전체 선택"><i class="fa-solid fa-check-double"></i></button>
                                     </div>
                                 </th>
-                                <th width="12%">수동 생성 복사</th>
+                                <th width="12%" style="line-height:1.2;">개별생성<br><small>외부AI웹</small></th>
                                 <th width="8%">자동생성 버튼</th>
                                 <th width="25%">자동 생성 결과</th>
                             </tr>
