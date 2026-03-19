@@ -18,14 +18,14 @@ menuItems.forEach(item => {
         // Remove active class from all
         menuItems.forEach(i => i.classList.remove('active'));
         pageSections.forEach(s => s.classList.remove('active'));
-
+        
         // Add active class to clicked
         item.classList.add('active');
         const targetId = item.getAttribute('data-target');
         document.getElementById(targetId).classList.add('active');
 
         // Trigger updates if necessary
-        if (targetId === 'class-stats' && parsedData.length > 0) {
+        if(targetId === 'class-stats' && parsedData.length > 0) {
             updateClassCharts();
         }
     });
@@ -46,10 +46,10 @@ parseDataBtn.addEventListener('click', () => {
     }
 
     const headers = rows[0].split('\t').map(h => h.trim());
-
+    
     parsedData = [];
     previewTable.querySelector('thead').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-
+    
     let tbodyHtml = '';
     for (let i = 1; i < rows.length; i++) {
         const cols = rows[i].split('\t');
@@ -82,60 +82,24 @@ function getStudentMeta(row) {
     let grade = row['학년'] || Object.values(row)[0] || "O";
     let ban = row['반'] || Object.values(row)[1] || "O";
     let num = row['번호'] || Object.values(row)[2] || "O";
-
+    
     grade = grade.toString().replace(/학년/g, '') + '학년';
     ban = ban.toString().replace(/반/g, '') + '반';
     num = num.toString().replace(/번/g, '') + '번';
-
+    
     return `${grade} ${ban} ${num}`;
 }
 
-// 학생 select 정렬 상태
-let studentSelectSortOrder = 'default'; // 'default' | 'asc'
-
-function populateStudentSelect(sortOrder) {
-    if (sortOrder !== undefined) studentSelectSortOrder = sortOrder;
+function populateStudentSelect() {
     studentSelect.innerHTML = '<option value="">-- 학생을 선택하세요 --</option>';
-
-    // parsedData를 원본 인덱스와 함께 배열화
-    let entries = parsedData.map((row, index) => ({ row, index }));
-
-    if (studentSelectSortOrder === 'asc') {
-        entries.sort((a, b) => {
-            const numA = parseInt(String(a.row['번호'] || Object.values(a.row)[2] || '0').replace(/[^0-9]/g, ''), 10) || 0;
-            const numB = parseInt(String(b.row['번호'] || Object.values(b.row)[2] || '0').replace(/[^0-9]/g, ''), 10) || 0;
-            return numA - numB;
-        });
-    }
-
-    entries.forEach(({ row, index }) => {
+    parsedData.forEach((row, index) => {
         const name = getStudentName(row);
         const option = document.createElement('option');
         option.value = index;
         option.textContent = `${getStudentMeta(row)} ${name}`;
         studentSelect.appendChild(option);
     });
-
-    // 정렬 버튼 상태 업데이트
-    const btn = document.getElementById('studentSortBtn');
-    if (btn) {
-        if (studentSelectSortOrder === 'asc') {
-            btn.classList.add('active-sort');
-            btn.title = '번호순 정렬 중 (클릭: 입력순)';
-            btn.innerHTML = '<i class="fa-solid fa-arrow-down-1-9"></i>';
-        } else {
-            btn.classList.remove('active-sort');
-            btn.title = '번호순으로 정렬';
-            btn.innerHTML = '<i class="fa-solid fa-arrow-down-1-9"></i>';
-        }
-    }
 }
-
-// 개인컨설팅 정렬 토글
-window.toggleStudentSort = function() {
-    studentSelectSortOrder = studentSelectSortOrder === 'default' ? 'asc' : 'default';
-    populateStudentSelect(studentSelectSortOrder);
-};
 
 function getRandomItems(arr, count) {
     const shuffled = [...arr].sort(() => 0.5 - Math.random());
@@ -144,8 +108,8 @@ function getRandomItems(arr, count) {
 
 // Transform weakness to a more positive future-oriented phrasing
 function transformWeakness(weakness) {
-    if (weakness.includes("필요") || weakness.includes("요망") || weakness.includes("바람")) {
-        return weakness;
+    if(weakness.includes("필요") || weakness.includes("요망") || weakness.includes("바람")) {
+        return weakness; 
     }
     return weakness;
 }
@@ -154,46 +118,46 @@ function transformWeakness(weakness) {
 function extractKeywordsForStudent(row) {
     let grade = String(row['학년'] || Object.values(row)[0] || "O");
     let version = 'v3';
-    if (grade.includes('1') || grade.includes('2')) version = 'v1';
-    else if (grade.includes('3') || grade.includes('4')) version = 'v2';
-
+    if(grade.includes('1') || grade.includes('2')) version = 'v1';
+    else if(grade.includes('3') || grade.includes('4')) version = 'v2';
+    
     let strengthsPool = [];
     let weaknessesPool = [];
-    const rowValues = Object.values(row);
-
+    const rowValues = Object.values(row); 
+    
     // MAPPING_DATA depends on db.js being loaded
-    if (typeof MAPPING_DATA !== 'undefined' && typeof KEYWORD_BANK !== 'undefined') {
+    if(typeof MAPPING_DATA !== 'undefined' && typeof KEYWORD_BANK !== 'undefined') {
         Object.keys(MAPPING_DATA).forEach(category => {
-            if (category === 'MBTI') return; // Handled differently if needed
-
+            if(category === 'MBTI') return; // Handled differently if needed
+            
             Object.keys(MAPPING_DATA[category]).forEach(sub => {
                 const qNums = MAPPING_DATA[category][sub][version];
-                if (!qNums) return;
-
+                if(!qNums) return;
+                
                 let totalScore = 0;
                 let count = 0;
                 qNums.forEach(qNum => {
                     const valStr = rowValues[3 + qNum]; // Q1 is at index 4
-                    if (valStr) {
+                    if(valStr) {
                         const valMatch = String(valStr).match(/\d+/); // extract number "5" from "5. 매우 그렇다"
-                        if (valMatch) {
+                        if(valMatch) {
                             totalScore += parseInt(valMatch[0], 10);
                             count++;
                         }
                     }
                 });
-
-                if (count > 0) {
+                
+                if(count > 0) {
                     const avg = totalScore / count;
                     const banks = KEYWORD_BANK[category][sub];
-                    if (!banks) return;
-
-                    if (avg >= 4.0) { // Strong positive
-                        if (banks["강점"]) strengthsPool = strengthsPool.concat(getRandomItems(banks["강점"], 3));
-                    } else if (avg <= 2.5) { // Needs improvement
-                        if (banks["보완"]) weaknessesPool = weaknessesPool.concat(getRandomItems(banks["보완"], 2));
+                    if(!banks) return;
+                    
+                    if(avg >= 4.0) { // Strong positive
+                        if(banks["강점"]) strengthsPool = strengthsPool.concat(getRandomItems(banks["강점"], 3));
+                    } else if(avg <= 2.5) { // Needs improvement
+                        if(banks["보완"]) weaknessesPool = weaknessesPool.concat(getRandomItems(banks["보완"], 2));
                     } else { // Neutral/Moderate
-                        if (banks["강점"]) strengthsPool = strengthsPool.concat(getRandomItems(banks["강점"], 1));
+                        if(banks["강점"]) strengthsPool = strengthsPool.concat(getRandomItems(banks["강점"], 1));
                     }
                 }
             });
@@ -201,10 +165,10 @@ function extractKeywordsForStudent(row) {
     }
 
     // Fallback if extraction is empty
-    if (strengthsPool.length < 10) {
+    if(strengthsPool.length < 10) {
         strengthsPool = strengthsPool.concat(getRandomItems(allStrengths, 15 - strengthsPool.length));
     }
-    if (weaknessesPool.length === 0) {
+    if(weaknessesPool.length === 0) {
         weaknessesPool = weaknessesPool.concat(getRandomItems(allWeaknesses, 3));
     }
 
@@ -216,74 +180,39 @@ function extractKeywordsForStudent(row) {
 }
 
 // AI Table Logic
-// 행발 테이블 정렬 상태 ('default' | 'asc')
-let aiTableSortOrder = 'default';
-
-// 행발 테이블 정렬 토글
-window.toggleAiTableSort = function() {
-    aiTableSortOrder = aiTableSortOrder === 'default' ? 'asc' : 'default';
-    populateAiTable();
-    // 버튼 상태 업데이트
-    const btn = document.getElementById('aiTableSortBtn');
-    if (btn) {
-        if (aiTableSortOrder === 'asc') {
-            btn.classList.add('active-sort');
-            btn.innerHTML = '<i class="fa-solid fa-arrow-down-1-9"></i> 번호순';
-            btn.title = '번호순 정렬 중 (클릭: 입력순)';
-        } else {
-            btn.classList.remove('active-sort');
-            btn.innerHTML = '<i class="fa-solid fa-list-ol"></i> 번호순';
-            btn.title = '번호순으로 정렬';
-        }
-    }
-};
-
-function populateAiTable(sortOrder) {
+function populateAiTable() {
     const tbody = document.querySelector('#aiDataTable tbody');
     tbody.innerHTML = '';
-
-    // 정렬: default = 입력 순, asc = 번호순
-    let dataWithIndex = parsedData.map((row, i) => ({ row, index: i }));
-    if (sortOrder === 'asc' || aiTableSortOrder === 'asc') {
-        dataWithIndex.sort((a, b) => {
-            const numA = parseInt(String(a.row['번호'] || Object.values(a.row)[2] || '0').replace(/[^0-9]/g, ''), 10) || 0;
-            const numB = parseInt(String(b.row['번호'] || Object.values(b.row)[2] || '0').replace(/[^0-9]/g, ''), 10) || 0;
-            return numA - numB;
-        });
-    }
-
-    dataWithIndex.forEach(({ row, index }, displayIdx) => {
+    
+    parsedData.forEach((row, index) => {
         const name = getStudentName(row);
         const meta = getStudentMeta(row);
 
-        if (!row._strengths || !row._weaknesses || row._strengths.length === 0) {
-            const extracted = extractKeywordsForStudent(row);
-            row._strengths = extracted.strengths;
-            row._weaknesses = extracted.weaknesses.map(transformWeakness);
-        }
-        if (row._aiGenerated === undefined) row._aiGenerated = '';
+        // Dynamically extract based on real survey data instead of completely random
+        const extracted = extractKeywordsForStudent(row);
+        
+        row._strengths = extracted.strengths;
+        row._weaknesses = extracted.weaknesses.map(transformWeakness);
+        row._aiGenerated = "";
 
-        const strengthsHtml = row._strengths.map(s =>
+        const strengthsHtml = row._strengths.map(s => 
             `<span class="keyword-badge strength active" onclick="toggleKeyword(this)">${s}</span>`
-        ).join('') + `<button class="keyword-add-btn" title="키워드 직접 추가" onclick="addCustomKeyword(this,'strength',${index})">＋</button>`;
-
-        const weaknessesHtml = row._weaknesses.map(w =>
+        ).join('');
+        
+        const weaknessesHtml = row._weaknesses.map(w => 
             `<span class="keyword-badge weakness active" onclick="toggleKeyword(this)">${w}</span>`
-        ).join('') + `<button class="keyword-add-btn weakness-add" title="키워드 직접 추가" onclick="addCustomKeyword(this,'weakness',${index})">＋</button>`;
+        ).join('');
 
         const tr = document.createElement('tr');
         tr.id = `ai-row-${index}`;
         tr.innerHTML = `
-            <td style="text-align:center;">${displayIdx + 1}</td>
+            <td>${index + 1}</td>
             <td><strong>${name}</strong><br><small style="color:var(--text-muted)">${meta}</small></td>
             <td id="ai-strengths-${index}">${strengthsHtml}</td>
             <td id="ai-weaknesses-${index}">${weaknessesHtml}</td>
-            <td><textarea id="ai-custom-req-${index}" class="form-select" style="width:100%; min-height:68px; margin:0; font-size:0.82rem; resize:vertical; padding:5px; line-height:1.4;" placeholder="이 학생 개별 요구사항&#10;(예: 전학생, 상담 반영 등)"></textarea></td>
-            <td style="text-align:center;">
-                <button class="btn btn-outline-primary btn-sm ai-ext-btn" onclick="copyManualPrompt(${index})" title="외부 AI 사이트에서 생성"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
-            </td>
-            <td style="text-align:center;"><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})"><i class="fa-solid fa-robot"></i></button></td>
-            <td id="ai-result-${index}" style="font-size:0.9rem; line-height:1.5; color:var(--text-muted);">
+            <td><button class="btn btn-outline-primary btn-sm" onclick="copyManualPrompt(${index})" style="width:100%"><i class="fa-solid fa-copy"></i> 외부AI웹</button></td>
+            <td><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})"><i class="fa-solid fa-robot"></i></button></td>
+            <td id="ai-result-${index}" style="font-size:0.95rem; line-height:1.5; color:var(--text-muted);">
                 [대기중] API Key 입력 후 클릭
             </td>
         `;
@@ -292,31 +221,16 @@ function populateAiTable(sortOrder) {
 }
 
 // Toggle Keyword Badge
-window.toggleKeyword = function (el) {
+window.toggleKeyword = function(el) {
     el.classList.toggle('active');
 };
 
-// Add custom keyword via + button
-window.addCustomKeyword = function(btn, type, index) {
-    const keyword = prompt(`추가할 ${type === 'strength' ? '강점' : '보완'} 키워드를 입력하세요:`);
-    if (!keyword || !keyword.trim()) return;
-    const typeClass = type === 'strength' ? 'strength' : 'weakness';
-    const containerId = type === 'strength' ? `ai-strengths-${index}` : `ai-weaknesses-${index}`;
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    const badge = document.createElement('span');
-    badge.className = `keyword-badge ${typeClass} active`;
-    badge.textContent = keyword.trim();
-    badge.onclick = function() { toggleKeyword(this); };
-    container.insertBefore(badge, btn);
-};
-
 // Generate Manual Prompt Text
-window.generateManualPromptText = function (index) {
+window.generateManualPromptText = function(index) {
     const row = parsedData[index];
     const name = getStudentName(row);
     const baseMeta = getStudentMeta(row);
-
+    
     // UI values
     const gradeSetup = document.getElementById('aiGradeSetup')?.value.trim();
     const metaStr = gradeSetup ? `${gradeSetup}` : baseMeta;
@@ -326,27 +240,22 @@ window.generateManualPromptText = function (index) {
     const term1Length = document.getElementById('aiTerm1Length')?.value || '200';
     const term2Length = document.getElementById('aiTerm2Length')?.value || '200';
     const customReq = document.getElementById('aiCustomRequest')?.value.trim();
-<<<<<<< HEAD
-    const studentCustomReq = document.getElementById(`ai-custom-req-${index}`)?.value.trim();
     
-=======
-
->>>>>>> b2b9e7caaf8fbf5108c202ce08584a94b7b373ec
     // Read active badges from DOM
     const strengthNodes = document.querySelectorAll(`#ai-strengths-${index} .keyword-badge.strength.active`);
     const weaknessNodes = document.querySelectorAll(`#ai-weaknesses-${index} .keyword-badge.weakness.active`);
-
+    
     const activeStrengths = Array.from(strengthNodes).map(n => n.innerText);
     const activeWeaknesses = Array.from(weaknessNodes).map(n => n.innerText);
-
+    
     let prompt = `다음 학생의 학교생활기록부 행동발달 문장을 작성해줘.\n`;
     prompt += `- 학생 이름: ${name}\n`;
     prompt += `- 배경 정보: ${metaStr}\n`;
     prompt += `- 주요 강점 키워드: ${activeStrengths.join(', ')}\n`;
-    if (activeWeaknesses.length > 0) {
+    if(activeWeaknesses.length > 0) {
         prompt += `- 지도 및 보완 지점: ${activeWeaknesses.join(', ')}\n`;
     }
-
+    
     if (isSecondTerm) {
         const lineBreaksCount = parseInt(document.getElementById('aiLineBreaks')?.value || '2', 10);
         const breaksStr = '\n'.repeat(lineBreaksCount);
@@ -360,41 +269,38 @@ window.generateManualPromptText = function (index) {
 
     prompt += `어조는 교사가 학생을 객관적이면서도 애정어린 시선으로 관찰한 긍정적 평어체로, '~함.', '~임.' 으로 끝나게 작성해줘.\n`;
 
-    if (studentCustomReq) {
-        prompt += `- 이 학생 개별 요구사항: ${studentCustomReq}\n`;
-    }
     if (customReq) {
-        prompt += `- 전체 공통 추가 요구사항: ${customReq}\n`;
+        prompt += `- 사용자 개별 추가 요구사항: ${customReq}\n`;
     }
 
     return prompt;
 };
 
 // Copy Manual Prompt for a single student
-window.copyManualPrompt = function (index) {
+window.copyManualPrompt = function(index) {
     const promptText = generateManualPromptText(index);
     openAiSiteModal(promptText, `${parsedData[index]['이름'] || '학생'}의 평어 생성 프롬프트가 복사되었습니다!`);
 };
 
 // Create mock AI result or use real logic depending on future Needs
-window.generateAiText = function (index) {
+window.generateAiText = function(index) {
     const row = parsedData[index];
     const apiKey = document.getElementById('apiKeyInput')?.value || '';
     const resultCell = document.getElementById(`ai-result-${index}`);
-
+    
     // Read active badges from DOM
     const strengthNodes = document.querySelectorAll(`#ai-strengths-${index} .keyword-badge.strength.active`);
     const activeStrengths = Array.from(strengthNodes).map(n => n.innerText);
 
-    if (!apiKey) {
+    if(!apiKey) {
         alert("글로벌 API 키가 설정되지 않았습니다. 좌측 하단의 '내 API Key 설정'에서 먼저 키를 입력해주세요. (API 키 미설정시 자동 생성이 불가합니다.)");
         return;
     }
-
+    
     // Real API Logic
     resultCell.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:var(--primary-color)"></i> 생성 중...`;
     const promptText = window.generateManualPromptText(index);
-
+    
     // Real API Logic
     window.callGeminiApi(promptText).then(text => {
         row._aiGenerated = text;
@@ -405,27 +311,27 @@ window.generateAiText = function (index) {
 }
 
 document.getElementById('generateAllBtn').addEventListener('click', () => {
-    if (parsedData.length === 0) return alert("데이터를 먼저 분석해주세요.");
-
+    if(parsedData.length === 0) return alert("데이터를 먼저 분석해주세요.");
+    
     const apiKey = document.getElementById('apiKeyInput')?.value || globalApiKey;
-    if (!apiKey) {
+    if(!apiKey) {
         alert("글로벌 API 키 설정이 먼저 필요합니다. 좌측 톱니바퀴 또는 '내 API Key 설정' 버튼을 눌러 API 키를 먼저 등록해주세요.");
         return;
     }
-
-    if (!confirm(`목록 내 모든 학생(${parsedData.length}명)의 행동발달사항을 일괄 자동생성 하시겠습니까?\n\n생성 도중 창을 닫거나 새로고침하지 마세요.`)) {
+    
+    if(!confirm(`목록 내 모든 학생(${parsedData.length}명)의 행동발달사항을 일괄 자동생성 하시겠습니까?\n\n생성 도중 창을 닫거나 새로고침하지 마세요.`)) {
         return;
     }
 
-    for (let i = 0; i < parsedData.length; i++) {
-        setTimeout(() => {
+    for(let i=0; i<parsedData.length; i++) {
+        setTimeout(()=>{
             window.generateAiText(i);
-        }, i * 500);
+        }, i*500); 
     }
 });
 
 document.getElementById('copyAllPromptBtn').addEventListener('click', () => {
-    if (parsedData.length === 0) return alert("데이터가 없습니다.");
+    if(parsedData.length === 0) return alert("데이터가 없습니다.");
     let text = "";
     parsedData.forEach((row, index) => {
         const prompt = generateManualPromptText(index);
@@ -437,14 +343,14 @@ document.getElementById('copyAllPromptBtn').addEventListener('click', () => {
 
 // Chart.js Setup and Class Consulting Logic
 function updateClassCharts() {
-    if (parsedData.length === 0) return;
+    if(parsedData.length === 0) return;
 
     // 1. Radar and Bar Chart (Placeholder for actual calculations)
     const ctxRadar = document.getElementById('classRadarChart').getContext('2d');
     const ctxBar = document.getElementById('classBarChart').getContext('2d');
 
-    if (classCharts.radar) classCharts.radar.destroy();
-    if (classCharts.bar) classCharts.bar.destroy();
+    if(classCharts.radar) classCharts.radar.destroy();
+    if(classCharts.bar) classCharts.bar.destroy();
 
     Chart.defaults.font.family = "'Noto Sans KR', sans-serif";
     Chart.defaults.font.size = 11;
@@ -486,7 +392,7 @@ function updateClassCharts() {
     });
 
     const ctxMi = document.getElementById('classMiChart').getContext('2d');
-    if (classCharts.mi) classCharts.mi.destroy();
+    if(classCharts.mi) classCharts.mi.destroy();
     classCharts.mi = new Chart(ctxMi, {
         type: 'radar',
         data: {
@@ -511,9 +417,9 @@ function updateClassCharts() {
     const mbtiCounts = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
     const mbtiNames = { E: [], I: [], S: [], N: [], T: [], F: [], J: [], P: [] };
     const mbtiTypes = ["ENTP", "ISFJ", "ENFP", "ISTJ", "ESTP", "INFP", "ESFJ", "INTJ", "ENTJ", "ISFP", "ENFJ", "ISTP", "ESTJ", "INTP", "ESFP", "INFJ"];
-
+    
     parsedData.forEach(row => {
-        if (!row._mbti) row._mbti = mbtiTypes[Math.floor(Math.random() * mbtiTypes.length)];
+        if(!row._mbti) row._mbti = mbtiTypes[Math.floor(Math.random() * mbtiTypes.length)];
         const m = row._mbti;
         mbtiCounts[m[0]]++; mbtiNames[m[0]].push(getStudentName(row));
         mbtiCounts[m[1]]++; mbtiNames[m[1]].push(getStudentName(row));
@@ -525,7 +431,7 @@ function updateClassCharts() {
     const renderBar = (left, right) => {
         const lCount = mbtiCounts[left];
         const rCount = mbtiCounts[right];
-        const lPct = total === 0 ? 0 : Math.round((lCount / total) * 100);
+        const lPct = total === 0 ? 0 : Math.round((lCount/total)*100);
         const rPct = 100 - lPct;
         const lTitle = mbtiNames[left].join(', ');
         const rTitle = mbtiNames[right].join(', ');
@@ -541,7 +447,7 @@ function updateClassCharts() {
         </div>`;
     };
 
-    document.getElementById('mbtiDistribution').innerHTML =
+    document.getElementById('mbtiDistribution').innerHTML = 
         renderBar('E', 'I') + renderBar('S', 'N') + renderBar('T', 'F') + renderBar('J', 'P');
 
 
@@ -559,24 +465,12 @@ function updateClassCharts() {
             const issues = ["행복요소 전반 점수 낮음", "교우관계 문항 주의 구간", "학급 내 소외감/스트레스 수치 높음"];
             const reason = issues[Math.floor(Math.random() * issues.length)];
             riskHtml += `
-<<<<<<< HEAD
                 <div class="risk-item">
-                    <div class="risk-item-info" style="flex:1;">
-                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">
-                            <strong>${getStudentName(row)}</strong>
-                            <button class="btn-risk-action" style="flex-shrink:0; white-space:nowrap; padding:2px 10px; font-size:0.8rem;" onclick="document.querySelector('.menu li[data-target=\\'personal-stats\\']').click(); document.getElementById('studentSelect').value = ${i}; document.getElementById('studentSelect').dispatchEvent(new Event('change'));">상세 보기</button>
-                        </div>
+                    <div class="risk-item-info">
+                        <strong>${getStudentName(row)}</strong>
                         <span class="risk-item-reason">(${getStudentMeta(row)}) - ${reason}</span>
-=======
-                <div class="risk-item" style="padding: 15px; border-bottom: 1px solid #eee;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <strong style="font-size: 1.1rem; color: var(--text-main);">${getStudentName(row)} <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-muted);">(${getStudentMeta(row)})</span></strong>
-                        <button class="btn btn-outline-primary btn-sm" style="white-space: nowrap; padding: 4px 8px; font-size: 0.8rem;" onclick="document.querySelector('.menu li[data-target=\\'personal-stats\\']').click(); document.getElementById('studentSelect').value = ${i}; document.getElementById('studentSelect').dispatchEvent(new Event('change'));">상세 보기</button>
                     </div>
-                    <div class="risk-item-reason" style="color: #E53E3E; font-size: 0.95rem;">
-                        <i class="fa-solid fa-circle-exclamation"></i> ${reason}
->>>>>>> b2b9e7caaf8fbf5108c202ce08584a94b7b373ec
-                    </div>
+                    <button class="btn-risk-action" onclick="document.querySelector('.menu li[data-target=\\'personal-stats\\']').click(); document.getElementById('studentSelect').value = ${i}; document.getElementById('studentSelect').dispatchEvent(new Event('change'));">상세 보기</button>
                 </div>
             `;
             dropdownHtml += `
@@ -588,11 +482,11 @@ function updateClassCharts() {
         }
     });
 
-    if (riskCount === 0) {
+    if(riskCount === 0) {
         riskHtml = `<div style="color:var(--success); font-weight:600; padding:15px; background:#F0FFF4; border-radius:8px;"><i class="fa-solid fa-check-circle"></i> 전문가 기준 관심 필요 대상 학생이 발견되지 않았습니다.</div>`;
         dropdownHtml = `<div style="padding:15px; text-align:center; color:var(--text-muted);">요주의 학생이 없습니다.</div>`;
     }
-
+    
     riskListContainer.innerHTML = riskHtml;
     riskDropdownContainer.innerHTML = dropdownHtml;
 
@@ -602,32 +496,32 @@ function updateClassCharts() {
 
 // MBTI Custom Tooltip Logic
 let mbtiTooltipEl = null;
-window.showMbtiTooltip = function (e) {
-    if (!mbtiTooltipEl) {
+window.showMbtiTooltip = function(e) {
+    if(!mbtiTooltipEl) {
         mbtiTooltipEl = document.createElement('div');
         mbtiTooltipEl.className = 'mbti-custom-tooltip';
         document.body.appendChild(mbtiTooltipEl);
     }
     const text = e.target.getAttribute('data-tooltip');
-    if (!text) return;
-
+    if(!text) return;
+    
     mbtiTooltipEl.innerHTML = text ? text.split(', ').join('<br>') : '';
     mbtiTooltipEl.classList.add('show');
-
+    
     // Position
     const rect = e.target.getBoundingClientRect();
     mbtiTooltipEl.style.left = (rect.left + window.scrollX + rect.width / 2) + 'px';
     mbtiTooltipEl.style.top = (rect.top + window.scrollY - mbtiTooltipEl.offsetHeight - 10) + 'px';
     mbtiTooltipEl.style.transform = 'translateX(-50%)';
 };
-window.hideMbtiTooltip = function () {
-    if (mbtiTooltipEl) {
+window.hideMbtiTooltip = function() {
+    if(mbtiTooltipEl) {
         mbtiTooltipEl.classList.remove('show');
     }
 };
 
 // Risk Dropdown UI
-window.toggleRiskDropdown = function () {
+window.toggleRiskDropdown = function() {
     const dropdown = document.getElementById('riskDropdown');
     if (dropdown.style.display === 'none') {
         dropdown.style.display = 'block';
@@ -636,7 +530,7 @@ window.toggleRiskDropdown = function () {
     }
 };
 
-window.addEventListener('click', function (event) {
+window.addEventListener('click', function(event) {
     const btn = document.getElementById('btnRiskNav');
     const dropdown = document.getElementById('riskDropdown');
     if (btn && dropdown && !btn.contains(event.target) && !dropdown.contains(event.target)) {
@@ -649,10 +543,10 @@ window.addEventListener('click', function (event) {
 });
 
 // Tab Switching Logic
-window.switchTab = function (tabId) {
+window.switchTab = function(tabId) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-pane').forEach(pane => pane.style.display = 'none');
-
+    
     document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
     document.getElementById(tabId).style.display = 'block';
 };
@@ -661,7 +555,7 @@ window.switchTab = function (tabId) {
 studentSelect.addEventListener('change', (e) => {
     const index = e.target.value;
     const profileCard = document.getElementById('studentProfile');
-
+    
     if (index === "") {
         profileCard.style.display = 'none';
         return;
@@ -670,32 +564,32 @@ studentSelect.addEventListener('change', (e) => {
     const row = parsedData[index];
     document.getElementById('studentName').innerText = getStudentName(row);
     document.getElementById('studentMeta').innerText = getStudentMeta(row);
-
-    if (!row._mbti) {
+    
+    if(!row._mbti) {
         const mbtiArr = ["ENTP", "ISFJ", "ENFP", "ISTJ", "ESTP", "INFP", "ESFJ", "INTJ", "ENTJ", "ISFP", "ENFJ", "ISTP", "ESTJ", "INTP", "ESFP", "INFJ"];
         row._mbti = mbtiArr[Math.floor(Math.random() * mbtiArr.length)];
     }
-
+    
     document.getElementById('studentMbti').innerHTML = `MBTI: ${row._mbti}`;
 
     // Extract raw stats from survey data based on MAPPING_DATA
     let studentGradeStr = String(row['학년'] || Object.values(row)[0] || "5");
     let version = 'v3';
-    if (studentGradeStr.includes('1') || studentGradeStr.includes('2')) version = 'v1';
-    else if (studentGradeStr.includes('3') || studentGradeStr.includes('4')) version = 'v2';
+    if(studentGradeStr.includes('1') || studentGradeStr.includes('2')) version = 'v1';
+    else if(studentGradeStr.includes('3') || studentGradeStr.includes('4')) version = 'v2';
 
     const rowVals = Object.values(row);
 
     // Helper: calculate average for a category
     function getCategoryAvg(catName) {
-        if (!MAPPING_DATA[catName]) return 0;
+        if(!MAPPING_DATA[catName]) return 0;
         let total = 0, count = 0;
         Object.keys(MAPPING_DATA[catName]).forEach(sub => {
             const qNums = MAPPING_DATA[catName][sub][version];
-            if (!qNums) return;
+            if(!qNums) return;
             qNums.forEach(q => {
-                const valMatch = String(rowVals[3 + q]).match(/\d+/);
-                if (valMatch) {
+                const valMatch = String(rowVals[3+q]).match(/\d+/);
+                if(valMatch) {
                     total += parseInt(valMatch[0], 10);
                     count++;
                 }
@@ -704,64 +598,46 @@ studentSelect.addEventListener('change', (e) => {
         return count > 0 ? (total / count) : 0;
     }
 
-    // Helper: Make colored stars
-    function getColoredStars(score, color) {
+    // Helper: Make stars
+    function getStars(score) {
         const full = Math.round(score);
-        let starHtml = "";
-        for (let i = 0; i < 5; i++) {
-            if (i < full) starHtml += `<span style="color:${color}; text-shadow: 0 0 2px rgba(0,0,0,0.5);">★</span>`;
-            else starHtml += `<span style="color:rgba(255,255,255,0.4);">☆</span>`;
+        let starStr = "";
+        for(let i=0; i<5; i++) {
+            starStr += (i < full) ? "★" : "☆";
         }
-        return starHtml;
+        return starStr;
     }
 
     const hapAvg = getCategoryAvg('행복');
     const adaptAvg = getCategoryAvg('학교적응력');
-<<<<<<< HEAD
     
-    // 행복도: 6요소 전체 합산 평균 → 5점 척도 별표 1개
-    document.getElementById('studentHappinessScore').innerHTML = `행복: <span style="color:#F59E0B;">${hapAvg > 0 ? getStars(hapAvg) : '데이터 부족'}</span>`;
+    document.getElementById('studentHappinessScore').innerText = `행복: ${hapAvg > 0 ? getStars(hapAvg) : '데이터 부족'}`;
+    document.getElementById('studentHappinessScore').style.color = hapAvg > 0 ? '#F59E0B' : 'var(--text-muted)';
     
-    // 학교적응도: 전체 항목 평균 → 5점 척도 별표 1개
-    document.getElementById('studentAdaptScore').innerHTML = `학교적응: <span style="color:#10B981;">${adaptAvg > 0 ? getStars(adaptAvg) : '데이터 부족'}</span>`;
+    document.getElementById('studentAdaptScore').innerText = `학교적응: ${adaptAvg > 0 ? getStars(adaptAvg) : '데이터 부족'}`;
+    document.getElementById('studentAdaptScore').style.color = adaptAvg > 0 ? '#10B981' : 'var(--text-muted)';
 
-=======
-
-    document.getElementById('studentHappinessScore').innerHTML = `행복: ${hapAvg > 0 ? getColoredStars(hapAvg, '#FDE047') : '데이터 부족'}`;
-    document.getElementById('studentAdaptScore').innerHTML = `학교적응: ${adaptAvg > 0 ? getColoredStars(adaptAvg, '#68D391') : '데이터 부족'}`;
-
->>>>>>> b2b9e7caaf8fbf5108c202ce08584a94b7b373ec
-    // Multi-Intelligence Top 2
+    // Multi-Intelligence Top 2~3
     let miScores = [];
-    if (MAPPING_DATA['다중지능']) {
+    if(MAPPING_DATA['다중지능']) {
         Object.keys(MAPPING_DATA['다중지능']).forEach(sub => {
             let sum = 0, c = 0;
             const qNums = MAPPING_DATA['다중지능'][sub][version];
-            if (qNums) {
+            if(qNums) {
                 qNums.forEach(q => {
-                    const match = String(rowVals[3 + q]).match(/\d+/);
-                    if (match) { sum += parseInt(match[0], 10); c++; }
+                    const match = String(rowVals[3+q]).match(/\d+/);
+                    if(match) { sum += parseInt(match[0], 10); c++; }
                 });
             }
-            if (c > 0) miScores.push({ name: sub, score: sum / c });
+            if(c>0) miScores.push({name: sub, score: sum/c});
         });
     }
-<<<<<<< HEAD
     if(miScores.length > 0) {
         miScores.sort((a,b) => b.score - a.score);
-        const topMi = miScores.slice(0, 2).map(m => m.name).join(', ');
-        document.getElementById('studentMiStrengths').innerHTML = `강점지능: <strong>${topMi}</strong>`;
+        const topMi = miScores.slice(0, 3).map(m => m.name).join(', ');
+        document.getElementById('studentMiStrengths').innerText = `강점 지능: ${topMi}`;
     } else {
-        document.getElementById('studentMiStrengths').innerText = `강점지능: 데이터 부족`;
-=======
-    if (miScores.length > 0) {
-        miScores.sort((a, b) => b.score - a.score);
-        // 상위 2개만 추출
-        const topMi = miScores.slice(0, 2).map(m => m.name).join(', ');
-        document.getElementById('studentMiStrengths').innerText = `다중지능: ${topMi}`;
-    } else {
-        document.getElementById('studentMiStrengths').innerText = `다중지능: 데이터 부족`;
->>>>>>> b2b9e7caaf8fbf5108c202ce08584a94b7b373ec
+        document.getElementById('studentMiStrengths').innerText = `강점 지능: 데이터 부족`;
     }
 
     // Reset Tabs
@@ -771,14 +647,14 @@ studentSelect.addEventListener('change', (e) => {
 
     // 1. Happiness Chart
     const ctxRadar = document.getElementById('studentRadarChart').getContext('2d');
-    if (classCharts.studentRadar) classCharts.studentRadar.destroy();
+    if(classCharts.studentRadar) classCharts.studentRadar.destroy();
     classCharts.studentRadar = new Chart(ctxRadar, {
         type: 'radar',
         data: {
             labels: ['긍정성', '정서조절', '안정감', '관계성', '유능감', '자율성'],
             datasets: [{
                 label: '개별 행복 점수',
-                data: Array.from({ length: 6 }, () => 2.5 + Math.random() * 2.5),
+                data: Array.from({length:6}, () => 2.5 + Math.random()*2.5),
                 backgroundColor: 'rgba(244, 196, 118, 0.3)',
                 borderColor: '#F4C476',
                 pointBackgroundColor: '#F4C476',
@@ -791,7 +667,7 @@ studentSelect.addEventListener('change', (e) => {
         }
     });
 
-    if (!row._strengths || !row._weaknesses) {
+    if(!row._strengths || !row._weaknesses) {
         const extracted = extractKeywordsForStudent(row);
         row._strengths = extracted.strengths;
         row._weaknesses = extracted.weaknesses.map(transformWeakness);
@@ -821,14 +697,14 @@ studentSelect.addEventListener('change', (e) => {
 
     // 3. MI Chart
     const ctxMi = document.getElementById('studentMiChart').getContext('2d');
-    if (classCharts.studentMi) classCharts.studentMi.destroy();
+    if(classCharts.studentMi) classCharts.studentMi.destroy();
     classCharts.studentMi = new Chart(ctxMi, {
         type: 'radar',
         data: {
             labels: ['언어', '논리수학', '공간', '신체운동', '음악', '대인관계', '자기성찰', '자연친화'],
             datasets: [{
                 label: '학생 다중지능 프로파일',
-                data: Array.from({ length: 8 }, () => 2.5 + Math.random() * 2.5),
+                data: Array.from({length:8}, () => 2.5 + Math.random()*2.5),
                 backgroundColor: 'rgba(155, 134, 219, 0.3)',
                 borderColor: '#9B86DB',
                 pointBackgroundColor: '#9B86DB',
@@ -843,14 +719,14 @@ studentSelect.addEventListener('change', (e) => {
 
     // 4. Adapt Chart
     const ctxAdapt = document.getElementById('studentAdaptChart').getContext('2d');
-    if (classCharts.studentAdapt) classCharts.studentAdapt.destroy();
+    if(classCharts.studentAdapt) classCharts.studentAdapt.destroy();
     classCharts.studentAdapt = new Chart(ctxAdapt, {
         type: 'bar',
         data: {
             labels: ['교우관계', '교사관계', '학업태도', '규칙준수'],
             datasets: [{
                 label: '항목별 적응 수준',
-                data: Array.from({ length: 4 }, () => 2.5 + Math.random() * 2.5),
+                data: Array.from({length:4}, () => 2.5 + Math.random()*2.5),
                 backgroundColor: '#92B4F2',
                 borderRadius: 4
             }]
@@ -865,15 +741,15 @@ studentSelect.addEventListener('change', (e) => {
     const rowValues = Object.values(row);
     // 보통 처음 4개(타임스탬프, 학년, 반, 번호, 이름 등 - 템플릿에 따라 다르나 보통 앞부분)는 메타데이터입니다.
     // 여기서는 항목 헤더에 '1.', '2.' 처럼 숫자로 시작하는 문항을 기준으로 설문 문항을 추출합니다.
-    const surveyKeys = rowKeys.filter(k => /^\d+\./.test(k));
-
+    const surveyKeys = rowKeys.filter(k => /^\d+\./.test(k)); 
+    
     // 만약 번호로 시작하는 문항이 없으면 첫 4개를 제외한 나머지를 설문응답으로 간주
     const finalSurveyKeys = surveyKeys.length > 0 ? surveyKeys : rowKeys.slice(4);
 
     let gradeStr = String(row['학년'] || rowValues[0] || "O");
     let targetSurvey = SURVEY_DATA["5~6학년용"];
-    if (gradeStr.includes('1') || gradeStr.includes('2')) targetSurvey = SURVEY_DATA["1~2학년용"];
-    else if (gradeStr.includes('3') || gradeStr.includes('4')) targetSurvey = SURVEY_DATA["3~4학년용"];
+    if(gradeStr.includes('1') || gradeStr.includes('2')) targetSurvey = SURVEY_DATA["1~2학년용"];
+    else if(gradeStr.includes('3') || gradeStr.includes('4')) targetSurvey = SURVEY_DATA["3~4학년용"];
 
     let flatEvals = [];
     if (targetSurvey) {
@@ -884,7 +760,7 @@ studentSelect.addEventListener('change', (e) => {
 
     // 5. Raw Survey Data Render per category
     const renderTable = (keys, startIndex = 0) => {
-        if (!keys || keys.length === 0) return '<p style="padding:15px; color:var(--text-muted); font-size:0.95rem;">연결된 응답 데이터가 없습니다.</p>';
+        if(!keys || keys.length === 0) return '<p style="padding:15px; color:var(--text-muted); font-size:0.95rem;">연결된 응답 데이터가 없습니다.</p>';
         let tableHtml = '<table style="width:100%; border-collapse: collapse; font-size: 0.95rem;"><thead><tr><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">항목 헤더</th><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">응답 값</th></tr></thead><tbody>';
         keys.forEach((key, iterIdx) => {
             const prefix = flatEvals[startIndex + iterIdx] ? `[${flatEvals[startIndex + iterIdx]}] ` : '';
@@ -895,31 +771,31 @@ studentSelect.addEventListener('change', (e) => {
     };
 
     let hapKeys = [], mbtiKeys = [], miKeys = [], adaptKeys = [];
-
+    
     let hapOffset = 0, mbtiOffset = 0, miOffset = 0, adaptOffset = 0;
     if (targetSurvey && finalSurveyKeys.length === targetSurvey.reduce((sum, s) => sum + s.questions.length, 0)) {
         hapOffset = 0;
-        hapKeys = finalSurveyKeys.slice(hapOffset, hapOffset + targetSurvey[0].questions.length);
+        hapKeys = finalSurveyKeys.slice(hapOffset, hapOffset + targetSurvey[0].questions.length); 
         mbtiOffset = hapOffset + targetSurvey[0].questions.length;
-        mbtiKeys = finalSurveyKeys.slice(mbtiOffset, mbtiOffset + targetSurvey[1].questions.length);
+        mbtiKeys = finalSurveyKeys.slice(mbtiOffset, mbtiOffset + targetSurvey[1].questions.length); 
         miOffset = mbtiOffset + targetSurvey[1].questions.length;
-        miKeys = finalSurveyKeys.slice(miOffset, miOffset + targetSurvey[2].questions.length);
+        miKeys = finalSurveyKeys.slice(miOffset, miOffset + targetSurvey[2].questions.length); 
         adaptOffset = miOffset + targetSurvey[2].questions.length;
         adaptKeys = finalSurveyKeys.slice(adaptOffset, adaptOffset + targetSurvey[3].questions.length);
     } else if (finalSurveyKeys.length > 0) {
         // 길이가 정확히 맞지 않는 경우, 대략 4등분 (fallback)
         let chunk = Math.ceil(finalSurveyKeys.length / 4);
         hapOffset = 0; hapKeys = finalSurveyKeys.slice(0, chunk);
-        mbtiOffset = chunk; mbtiKeys = finalSurveyKeys.slice(chunk, chunk * 2);
-        miOffset = chunk * 2; miKeys = finalSurveyKeys.slice(chunk * 2, chunk * 3);
-        adaptOffset = chunk * 3; adaptKeys = finalSurveyKeys.slice(chunk * 3);
+        mbtiOffset = chunk; mbtiKeys = finalSurveyKeys.slice(chunk, chunk*2);
+        miOffset = chunk*2; miKeys = finalSurveyKeys.slice(chunk*2, chunk*3);
+        adaptOffset = chunk*3; adaptKeys = finalSurveyKeys.slice(chunk*3);
     }
 
-    if (document.getElementById('studentHappinessRaw')) document.getElementById('studentHappinessRaw').innerHTML = renderTable(hapKeys, hapOffset);
-    if (document.getElementById('studentMbtiRaw')) document.getElementById('studentMbtiRaw').innerHTML = renderTable(mbtiKeys, mbtiOffset);
-    if (document.getElementById('studentMiRaw')) document.getElementById('studentMiRaw').innerHTML = renderTable(miKeys, miOffset);
-    if (document.getElementById('studentAdaptRaw')) document.getElementById('studentAdaptRaw').innerHTML = renderTable(adaptKeys, adaptOffset);
-
+    if(document.getElementById('studentHappinessRaw')) document.getElementById('studentHappinessRaw').innerHTML = renderTable(hapKeys, hapOffset);
+    if(document.getElementById('studentMbtiRaw')) document.getElementById('studentMbtiRaw').innerHTML = renderTable(mbtiKeys, mbtiOffset);
+    if(document.getElementById('studentMiRaw')) document.getElementById('studentMiRaw').innerHTML = renderTable(miKeys, miOffset);
+    if(document.getElementById('studentAdaptRaw')) document.getElementById('studentAdaptRaw').innerHTML = renderTable(adaptKeys, adaptOffset);
+    
     let allHtml = '<table style="width:100%; border-collapse: collapse; font-size: 0.95rem;">';
     allHtml += '<thead><tr><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">항목 헤더</th><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">응답 값</th></tr></thead><tbody>';
     rowKeys.forEach(key => {
@@ -929,12 +805,12 @@ studentSelect.addEventListener('change', (e) => {
         </tr>`;
     });
     allHtml += '</tbody></table>';
-    if (document.getElementById('studentSurveyRaw')) document.getElementById('studentSurveyRaw').innerHTML = allHtml;
+    if(document.getElementById('studentSurveyRaw')) document.getElementById('studentSurveyRaw').innerHTML = allHtml;
 });
 
 // Gemini API & Chat Logic
 let globalApiKey = sessionStorage.getItem('geminiApiKey') || "";
-let currentChatContext = "";
+let currentChatContext = ""; 
 let chatHistory = [];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -957,8 +833,8 @@ function updateApiStatusBadge() {
     }
 
     const sidebarBtn = document.getElementById('sidebarApiBtn');
-    if (sidebarBtn) {
-        if (globalApiKey) {
+    if(sidebarBtn) {
+        if(globalApiKey) {
             sidebarBtn.className = "btn btn-outline-tertiary";
             sidebarBtn.innerHTML = `<i class="fa-solid fa-key"></i> 내 API Key 설정 (등록완료)`;
             sidebarBtn.style.backgroundColor = "rgba(244, 196, 118, 0.1)";
@@ -970,18 +846,18 @@ function updateApiStatusBadge() {
     }
 }
 
-window.openApiModal = function () {
+window.openApiModal = function() {
     document.getElementById('globalApiKeyInput').value = globalApiKey;
     document.getElementById('apiSetupModal').style.display = 'flex';
 };
 
-window.closeApiModal = function () {
+window.closeApiModal = function() {
     document.getElementById('apiSetupModal').style.display = 'none';
 };
 
-window.saveApiKey = function () {
+window.saveApiKey = function() {
     const key = document.getElementById('globalApiKeyInput').value.trim();
-    if (key) {
+    if(key) {
         globalApiKey = key;
         sessionStorage.setItem('geminiApiKey', key);
         updateApiStatusBadge();
@@ -992,7 +868,7 @@ window.saveApiKey = function () {
     }
 };
 
-window.resetApiKey = function () {
+window.resetApiKey = function() {
     globalApiKey = "";
     sessionStorage.removeItem('geminiApiKey');
     document.getElementById('globalApiKeyInput').value = "";
@@ -1000,12 +876,12 @@ window.resetApiKey = function () {
     alert("API 키가 초기화되었습니다.");
 };
 
-window.callGeminiApi = async function (prompt) {
-    if (!globalApiKey) {
+window.callGeminiApi = async function(prompt) {
+    if(!globalApiKey) {
         throw new Error("API 키가 설정되지 않았습니다.");
     }
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${globalApiKey}`;
-
+    
     // Convert history + current prompt to Gemini format
     const contents = chatHistory.map(msg => ({
         role: msg.role === 'user' ? 'user' : 'model',
@@ -1020,90 +896,97 @@ window.callGeminiApi = async function (prompt) {
     }).catch(e => {
         throw new Error("네트워크 연결 실패(교내망 등 보안 프로그램 차단) 또는 API 키 오류일 수 있습니다. 외부망에서 접속해보세요. 원문: " + e.message);
     });
-
-    if (!response.ok) {
+    
+    if(!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error?.message || "알 수 없는 API 서버 오류 발생");
     }
-
+    
     const data = await response.json();
     return data.candidates[0].content.parts[0].text;
 };
 
 // Chat UI Controls
-window.openStudentConsultingChat = function () {
+window.openStudentConsultingChat = function() {
     const studentIdx = document.getElementById('studentSelect').value;
     if (studentIdx === "") return alert("학생을 먼저 선택해주세요.");
     if (!globalApiKey) {
         alert("글로벌 API 키 설정이 필요합니다. 좌측 메뉴 하단의 버튼을 눌러 설정해주세요.");
         return openApiModal();
     }
-
+    
     const row = parsedData[studentIdx];
     const name = getStudentName(row);
     document.getElementById('chatTitle').innerText = `${name} 학생 맞춤 상담`;
-
+    
     const strengths = row._strengths ? row._strengths.join(", ") : "";
     const weaknesses = row._weaknesses ? row._weaknesses.join(", ") : "";
-
+    
     currentChatContext = `선생님은 초등학교 교사이고, 나는 선생님을 돕는 교육 AI 컨설턴트입니다.
 현재 우리는 [${name}(${getStudentMeta(row)})] 학생에 대해 논의 중입니다.
 학생의 MBTI는 ${row._mbti || "미상"}이며, 눈여겨볼 강점은 [${strengths}]이고, 지도/보완점은 [${weaknesses}]입니다.
 선생님이 질문하시면 친절하고 실천 가능하며 선생님을 배려하는 어조로 짧고 명확하게 답변해주세요. 첫 인사를 부탁합니다.`;
-
+    
     initChatOverlay();
 };
 
-window.openClassConsultingChat = function () {
+window.openClassConsultingChat = function() {
     if (parsedData.length === 0) return alert("데이터를 먼저 입력해주세요.");
     if (!globalApiKey) {
         alert("글로벌 API 키 설정이 필요합니다. 좌측 메뉴 하단의 버튼을 눌러 설정해주세요.");
         return openApiModal();
     }
-
-    document.getElementById('chatTitle').innerText = `학급 전체 종합 상담`;
-<<<<<<< HEAD
     
+    document.getElementById('chatTitle').innerText = `학급 전체 종합 상담`;
+    
+    currentChatContext = `선생님은 초등학교 교사이고, 나는 선생님을 돕는 교육 AI 컨설턴트입니다.
+현재 우리 학급에는 총 ${parsedData.length}명의 학생이 있습니다.
+선생님이 학급 경영, 수업 방향, 전체적인 분위기 조성에 대해 질문을 하실 것입니다.
+질문이 오면 친절하고 실제 교실에서 쓰일 수 있는 구체적인 팁 위주로 명확하게 답변해주세요. 첫 인사를 부탁합니다.`;
+    
+    initChatOverlay();
+};
+
+window.startClassGeminiConsulting = function() {
+    if (parsedData.length === 0) return alert("데이터를 먼저 입력해주세요.");
+
     const totalStudents = parsedData.length;
-
-    // 성별 집계
-    let maleCount = 0, femaleCount = 0;
+    // Calculate simple class average strengths / weaknesses based on keyword frequencies
+    const allStrengths = {};
+    const allWeaknesses = {};
+    const allMbti = {};
+    
     parsedData.forEach(row => {
-        const gender = row['성별'] || row['gender'] || '';
-        if(gender.includes('남')) maleCount++;
-        else if(gender.includes('여')) femaleCount++;
+        if(row._mbti) {
+            allMbti[row._mbti] = (allMbti[row._mbti] || 0) + 1;
+        }
+        if(row._strengths) {
+            row._strengths.forEach(s => { allStrengths[s] = (allStrengths[s] || 0) + 1; });
+        }
+        if(row._weaknesses) {
+            row._weaknesses.forEach(w => { allWeaknesses[w] = (allWeaknesses[w] || 0) + 1; });
+        }
     });
-    const genderStr = (maleCount + femaleCount > 0)
-        ? `남 ${maleCount}명(${Math.round(maleCount/totalStudents*100)}%), 여 ${femaleCount}명(${Math.round(femaleCount/totalStudents*100)}%)`
-        : '성별 데이터 없음';
 
-    // 학년/버전
+    const topMbti = Object.entries(allMbti).sort((a,b) => b[1]-a[1]).slice(0,3).map(e=>e[0]).join(', ');
+    const topStrengths = Object.entries(allStrengths).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>`${e[0]}(${e[1]}명)`).join(', ');
+    const topWeaknesses = Object.entries(allWeaknesses).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>`${e[0]}(${e[1]}명)`).join(', ');
+
+    // Extract factor averages if available in SURVEY_DATA
+    let factorStr = "";
+    let version = 'v3';
     let sampleRow = parsedData[0];
     let gradeStr = String(sampleRow['학년'] || Object.values(sampleRow)[0] || "5");
-    let version = 'v3';
     if(gradeStr.includes('1') || gradeStr.includes('2')) version = 'v1';
     else if(gradeStr.includes('3') || gradeStr.includes('4')) version = 'v2';
-
-    let targetGradeKey = '5~6학년용';
-    if(version === 'v1') targetGradeKey = '1~2학년용';
-    else if(version === 'v2') targetGradeKey = '3~4학년용';
-    const targetSurvey = SURVEY_DATA[targetGradeKey] || [];
-
-    // 설문 구성 요약
-    let surveyOutlineStr = `\n[설문지 목적 및 구성 - ${targetGradeKey}]\n설문 목적: 행복 6요소·MBTI·다중지능·학교적응력 종합 평가\n`;
-    targetSurvey.forEach(sec => {
-        surveyOutlineStr += `[${sec.section}] `;
-        surveyOutlineStr += sec.questions.map(q => `${q.q}(${q.eval})`).join(' / ') + '\n';
-    });
-
-    // 요인별 학급 평균
-    let factorStr = '\n[요인별 학급 전체 평균 (5점 만점)]';
-    let factorScores = {}, factorCounts = {};
-    let questionDistribution = {};
-    parsedData.forEach(row => {
-        const rowVals = Object.values(row);
-        const rowKeys = Object.keys(row).filter(k => !k.startsWith('_'));
-        if(typeof MAPPING_DATA !== 'undefined') {
+    
+    if(typeof MAPPING_DATA !== 'undefined') {
+        factorStr += "\n[요인별 정량 통계 (5점 만점 환산 추정)]\n";
+        let factorScores = {};
+        let factorCounts = {};
+        
+        parsedData.forEach(row => {
+            const rowVals = Object.values(row);
             Object.keys(MAPPING_DATA).forEach(cat => {
                 if(cat==='MBTI') return;
                 Object.keys(MAPPING_DATA[cat]).forEach(sub => {
@@ -1112,181 +995,6 @@ window.openClassConsultingChat = function () {
                     qNums.forEach(qNum => {
                         const valMatch = String(rowVals[3+qNum]).match(/\d+/);
                         if(valMatch) {
-                            const mk = `[${cat}] ${sub}`;
-                            factorScores[mk] = (factorScores[mk] || 0) + parseInt(valMatch[0], 10);
-                            factorCounts[mk] = (factorCounts[mk] || 0) + 1;
-                        }
-                    });
-                });
-            });
-        }
-        const sKeys = rowKeys.filter(k => /^\d+\./.test(k));
-        const fKeys = sKeys.length > 0 ? sKeys : rowKeys.slice(4);
-        fKeys.forEach(key => {
-            if(!questionDistribution[key]) questionDistribution[key] = {1:0,2:0,3:0,4:0,5:0};
-            const vm = String(row[key]).match(/\d+/);
-            if(vm) { const v = parseInt(vm[0],10); if(v>=1&&v<=5) questionDistribution[key][v]++; }
-        });
-    });
-    Object.keys(factorScores).forEach(key => {
-        factorStr += `\n- ${key}: ${(factorScores[key]/factorCounts[key]).toFixed(2)}점`;
-    });
-    let distStr = '\n\n[문항별 응답 분포]';
-    Object.keys(questionDistribution).forEach(key => {
-        const d = questionDistribution[key];
-        distStr += `\n· ${key} → 1:${d[1]}명 2:${d[2]}명 3:${d[3]}명 4:${d[4]}명 5:${d[5]}명`;
-    });
-
-    // MBTI 분포
-    const mbtiTypeCounts = {E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0};
-    parsedData.forEach(row => {
-        if(row._mbti && row._mbti.length===4) row._mbti.split('').forEach(c => { if(mbtiTypeCounts[c]!==undefined) mbtiTypeCounts[c]++; });
-    });
-    let mbtiStr = '\n\n[학급 MBTI 분포]';
-    [['E','I'],['S','N'],['T','F'],['J','P']].forEach(([l,r]) => {
-        mbtiStr += `\n· ${l}:${mbtiTypeCounts[l]}명 vs ${r}:${mbtiTypeCounts[r]}명`;
-    });
-
-    currentChatContext = `당신은 초등학교 교사를 돕는 교육 AI 컨설턴트입니다. 아래는 학급 전체의 설문 데이터입니다.
-학급인원: ${totalStudents}명 / 성별: ${genderStr}${mbtiStr}${surveyOutlineStr}${factorStr}${distStr}
-
-선생님과 학급 경영, 수업 방향, 전체적인 분위기 조성 등에 대해 이 데이터를 바탕으로 깊이 있게 대화해주세요.
-친절하고 실제 교실에서 바로 쓸 수 있는 구체적인 팁 위주로 답변하되, 데이터의 수치를 자주 인용하여 근거 있는 조언을 해주세요.
-먼저 학급 전체 데이터를 간략히 분석하여 선생님께 핵심 인사이트를 드려주세요.`;
-    
-=======
-
-    currentChatContext = `선생님은 초등학교 교사이고, 나는 선생님을 돕는 교육 AI 컨설턴트입니다.
-현재 우리 학급에는 총 ${parsedData.length}명의 학생이 있습니다.
-선생님이 학급 경영, 수업 방향, 전체적인 분위기 조성에 대해 질문을 하실 것입니다.
-질문이 오면 친절하고 실제 교실에서 쓰일 수 있는 구체적인 팁 위주로 명확하게 답변해주세요. 첫 인사를 부탁합니다.`;
-
->>>>>>> b2b9e7caaf8fbf5108c202ce08584a94b7b373ec
-    initChatOverlay();
-};
-
-window.startClassGeminiConsulting = function () {
-    if (parsedData.length === 0) return alert("데이터를 먼저 입력해주세요.");
-
-    const totalStudents = parsedData.length;
-<<<<<<< HEAD
-=======
-
-    // 1. 남녀 성별 추출 (데이터에 '성별' 또는 '남/여' 값이 있는지 확인)
-    let maleCount = 0;
-    let femaleCount = 0;
-    let genderFound = false;
-
-    parsedData.forEach(row => {
-        const rowVals = Object.values(row).map(v => String(v).trim());
-        const genderKey = Object.keys(row).find(k => k.includes('성별') || k.includes('남녀') || k.includes('남여'));
-
-        let genderStr = genderKey ? String(row[genderKey]).trim() : "";
-        if (!genderStr) {
-            if (rowVals.includes('남') || rowVals.includes('남자')) genderStr = '남';
-            else if (rowVals.includes('여') || rowVals.includes('여자')) genderStr = '여';
-        }
-
-        if (genderStr.includes('남') || genderStr === 'M') { maleCount++; genderFound = true; }
-        if (genderStr.includes('여') || genderStr === 'F') { femaleCount++; genderFound = true; }
-    });
-
-    const genderInfo = genderFound ? `남학생 ${maleCount}명, 여학생 ${femaleCount}명` : '성별 데이터 없음';
-
-    // 2. 키워드, MBTI, 요인별 점수 추출
-    const allStrengths = {};
-    const allWeaknesses = {};
->>>>>>> b2b9e7caaf8fbf5108c202ce08584a94b7b373ec
-    const allMbti = {};
-
-    parsedData.forEach(row => {
-<<<<<<< HEAD
-        if(row._mbti) {
-            allMbti[row._mbti] = (allMbti[row._mbti] || 0) + 1;
-        }
-    });
-
-    const topMbti = Object.entries(allMbti).sort((a,b) => b[1]-a[1]).slice(0,3).map(e=>e[0]).join(', ');
-
-    // 성별 집계
-    let maleCount = 0, femaleCount = 0;
-    parsedData.forEach(row => {
-        const gender = row['성별'] || row['gender'] || '';
-        if(gender.includes('남')) maleCount++;
-        else if(gender.includes('여')) femaleCount++;
-    });
-    const genderStr = (maleCount + femaleCount > 0)
-        ? `남 ${maleCount}명(${Math.round(maleCount/totalStudents*100)}%), 여 ${femaleCount}명(${Math.round(femaleCount/totalStudents*100)}%)`
-        : '성별 데이터 없음';
-
-    // 학년 추출
-    let sampleRow = parsedData[0];
-    let gradeStr = String(sampleRow['학년'] || Object.values(sampleRow)[0] || "5");
-    let version = 'v3';
-    if(gradeStr.includes('1') || gradeStr.includes('2')) version = 'v1';
-    else if(gradeStr.includes('3') || gradeStr.includes('4')) version = 'v2';
-
-    // 설문지 - 해당 학년 섹션 및 질문 전체
-    let targetGradeKey = '5~6학년용';
-    if(version === 'v1') targetGradeKey = '1~2학년용';
-    else if(version === 'v2') targetGradeKey = '3~4학년용';
-    const targetSurvey = SURVEY_DATA[targetGradeKey] || [];
-
-    let surveyOutlineStr = `\n[설문지 목적 및 구성]\n설문지명: ${targetGradeKey} 학생 다면적 심리·학교생활 설문\n설문 목적: 학생의 행복 6요소(긍정성, 정서조절, 안정감, 관계성, 유능감, 자율성), MBTI 성격 지향, 다중지능 8영역 강점, 학교적응력(교우관계, 교사관계, 학업태도, 규칙준수)을 종합 평가하여 맞춤형 교육 지원에 활용\n\n`;
-    targetSurvey.forEach(sec => {
-        surveyOutlineStr += `[${sec.section}]\n`;
-        sec.questions.forEach(q => {
-            surveyOutlineStr += `  · ${q.q} (평가영역: ${q.eval})\n`;
-        });
-        surveyOutlineStr += '\n';
-    });
-
-    // 요인별 정량 통계 + 문항별 응답 분포
-    let factorStr = "\n[요인별 학급 평균 (5점 만점)]";
-    let factorScores = {}, factorCounts = {};
-    // 문항별 응답 분포: {문항헤더: {1:0,2:0,3:0,4:0,5:0}}
-    let questionDistribution = {};
-
-    parsedData.forEach(row => {
-        const rowVals = Object.values(row);
-        const rowKeys = Object.keys(row).filter(k => !k.startsWith('_'));
-
-        // 요인별 통계
-        if(typeof MAPPING_DATA !== 'undefined') {
-=======
-        if (row._mbti) allMbti[row._mbti] = (allMbti[row._mbti] || 0) + 1;
-        if (row._strengths) row._strengths.forEach(s => { allStrengths[s] = (allStrengths[s] || 0) + 1; });
-        if (row._weaknesses) row._weaknesses.forEach(w => { allWeaknesses[w] = (allWeaknesses[w] || 0) + 1; });
-    });
-
-    const topMbti = Object.entries(allMbti).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => e[0]).join(', ');
-    const topStrengths = Object.entries(allStrengths).sort((a, b) => b[1] - a[1]).slice(0, 5).map(e => `${e[0]}(${e[1]}명)`).join(', ');
-    const topWeaknesses = Object.entries(allWeaknesses).sort((a, b) => b[1] - a[1]).slice(0, 5).map(e => `${e[0]}(${e[1]}명)`).join(', ');
-
-    let factorStr = "\n[요인별 정량 통계 (5점 만점 환산 추정)]\n";
-    let version = 'v3';
-    let sampleRow = parsedData[0];
-    let gradeStr = String(sampleRow['학년'] || Object.values(sampleRow)[0] || "5");
-
-    let targetSurvey = SURVEY_DATA["5~6학년용"];
-    if (gradeStr.includes('1') || gradeStr.includes('2')) { version = 'v1'; targetSurvey = SURVEY_DATA["1~2학년용"]; }
-    else if (gradeStr.includes('3') || gradeStr.includes('4')) { version = 'v2'; targetSurvey = SURVEY_DATA["3~4학년용"]; }
-
-    if (typeof MAPPING_DATA !== 'undefined') {
-        let factorScores = {};
-        let factorCounts = {};
-
-        parsedData.forEach(row => {
-            const rowVals = Object.values(row);
->>>>>>> b2b9e7caaf8fbf5108c202ce08584a94b7b373ec
-            Object.keys(MAPPING_DATA).forEach(cat => {
-                if (cat === 'MBTI') return;
-                Object.keys(MAPPING_DATA[cat]).forEach(sub => {
-                    const qNums = MAPPING_DATA[cat][sub][version];
-                    if (!qNums) return;
-                    qNums.forEach(qNum => {
-                        const valMatch = String(rowVals[3 + qNum]).match(/\d+/);
-                        if (valMatch) {
                             const measureName = `[${cat}] ${sub}`;
                             factorScores[measureName] = (factorScores[measureName] || 0) + parseInt(valMatch[0], 10);
                             factorCounts[measureName] = (factorCounts[measureName] || 0) + 1;
@@ -1294,142 +1002,36 @@ window.startClassGeminiConsulting = function () {
                     });
                 });
             });
-        }
-
-        // 문항별 응답 분포 수집 (첫 4개 제외한 설문항목)
-        const surveyKeys = rowKeys.filter(k => /^\d+\./.test(k));
-        const finalSurveyKeys = surveyKeys.length > 0 ? surveyKeys : rowKeys.slice(4);
-        finalSurveyKeys.forEach(key => {
-            if(!questionDistribution[key]) questionDistribution[key] = {1:0,2:0,3:0,4:0,5:0};
-            const valMatch = String(row[key]).match(/\d+/);
-            if(valMatch) {
-                const v = parseInt(valMatch[0], 10);
-                if(v >= 1 && v <= 5) questionDistribution[key][v]++;
-            }
         });
-<<<<<<< HEAD
-    });
-
-    Object.keys(factorScores).forEach(key => {
-        const avg = (factorScores[key] / factorCounts[key]).toFixed(2);
-        factorStr += `\n- ${key}: 평균 ${avg}점`;
-    });
-
-    // 문항별 응답 분포 문자열
-    let distStr = "\n\n[문항별 전체 학생 응답 분포 (1점~5점 / 해당 학생 수)]";
-    // 개수가 너무 많으면 요약
-    const distKeys = Object.keys(questionDistribution);
-    distKeys.forEach(key => {
-        const d = questionDistribution[key];
-        distStr += `\n  · ${key} → 1점:${d[1]}명 / 2점:${d[2]}명 / 3점:${d[3]}명 / 4점:${d[4]}명 / 5점:${d[5]}명`;
-    });
-
-    // MBTI 성향 분포
-    let mbtiDistStr = '\n\n[학급 MBTI 성향 분포]';
-    const mbtiDimensions = [['E','I'],['S','N'],['T','F'],['J','P']];
-    const mbtiTypeCounts = {E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0};
-    parsedData.forEach(row => {
-        if(row._mbti && row._mbti.length === 4) {
-            row._mbti.split('').forEach(c => { if(mbtiTypeCounts[c] !== undefined) mbtiTypeCounts[c]++; });
-        }
-    });
-    mbtiDimensions.forEach(([l, r]) => {
-        const lc = mbtiTypeCounts[l], rc = mbtiTypeCounts[r];
-        mbtiDistStr += `\n  · ${l}: ${lc}명(${Math.round(lc/totalStudents*100)}%) vs ${r}: ${rc}명(${Math.round(rc/totalStudents*100)}%)`;
-    });
-=======
-
+        
         Object.keys(factorScores).forEach(key => {
             const avg = (factorScores[key] / factorCounts[key]).toFixed(2);
             factorStr += `- ${key}: 평균 ${avg}점\n`;
         });
     }
->>>>>>> b2b9e7caaf8fbf5108c202ce08584a94b7b373ec
 
-    // 3. 문항별 전체 학생 답변 분포 세부 추출
-    let surveyDistributionStr = "\n[설문 문항별 전체 학생 응답 상세 분포 (모든 문항 및 매핑 요소 포함)]\n";
-    let qDist = {};
-    const rowKeys = Object.keys(sampleRow).filter(k => !k.startsWith('_'));
-    const surveyKeys = rowKeys.filter(k => /^\d+\./.test(k));
-    const finalSurveyKeys = surveyKeys.length > 0 ? surveyKeys : rowKeys.slice(4);
-
-    let flatSurveyEvals = [];
-    if (targetSurvey) {
-        targetSurvey.forEach(sec => {
-            sec.questions.forEach(q => flatSurveyEvals.push({ section: sec.section, eval: q.eval }));
-        });
-    }
-
-    finalSurveyKeys.forEach((key, idx) => {
-        let metaInfo = flatSurveyEvals[idx] ? `[${flatSurveyEvals[idx].section} - ${flatSurveyEvals[idx].eval}] ` : "";
-        let qTitle = `${metaInfo}${key}`;
-        qDist[qTitle] = {};
-
-        parsedData.forEach(row => {
-            let val = String(row[key] || "미응답").trim();
-            let match = val.match(/^\d+/);
-            let score = match ? match[0] + "점" : val; // 번호 추출
-            qDist[qTitle][score] = (qDist[qTitle][score] || 0) + 1;
-        });
-    });
-
-    Object.keys(qDist).forEach(qTitle => {
-        let distArr = Object.entries(qDist[qTitle])
-            .sort((a, b) => b[0].localeCompare(a[0])) // 응답 값 기준 정렬
-            .map(entry => `${entry[0]}(${entry[1]}명)`);
-        surveyDistributionStr += `- ${qTitle} => ${distArr.join(' / ')}\n`;
-    });
-
-    // 4. 최종 프롬프트 조합
     const prompt = `당신은 초등학교 학급 경영 및 학생 교육을 돕는 심층적이고 전문적인 교육 AI 컨설턴트입니다.
-<<<<<<< HEAD
-다음은 제가 맡고 있는 학급(${totalStudents}명)의 종합 설문 데이터 전체입니다.
-이를 심층 분석하여, 활기차고 안정적인 학급 문화를 만들기 위해 오늘 당장 실천할 수 있는 구체적인 관리 및 지도 팁 3가지 이상을 제시해주세요.
-
-[학급 기본 정보]
-- 총 인원: ${totalStudents}명
-- 성별: ${genderStr}
-- 학급 MBTI 선호 유형(상위): ${topMbti || '데이터 부족'}
-${mbtiDistStr}
-${surveyOutlineStr}${factorStr}${distStr}
-
-위 모든 정보를 종합하여 아래 항목을 반드시 포함하여 작성해주세요:
-① 학급 전체의 가장 두드러진 강점 2가지와 활용 방안
-② 상대적으로 수치가 낮거나 보완이 필요한 영역 2가지와 즉각 실천 가능한 개선 전략
-③ 문항별 응답 분포에서 눈에 띄는 점(대다수가 1~2점이거나 5점에 쏠린 문항)에 대한 해석 및 지도 방향
-④ 학급 문화 형성을 위한 조종례/종례 활용 팁 1가지
-=======
-다음은 제가 맡고 있는 학급(${totalStudents}명)이 실시한 '다면적 심리 및 학교생활 설문조사'의 상세한 답변 전체 분포 데이터입니다.
-
-[설문조사 목적 및 배경]
-본 설문은 학생들의 행복 6요소(긍정성, 정서조절, 안정감, 관계성, 유능감, 자율성), 성격 특성(MBTI), 다중지능 강점, 그리고 학교적응력(교우, 교사, 학업, 규칙)을 다각도로 파악하여 학생들을 올바르게 이해하고 맞춤형 생활지도를 기획하기 위해 진행되었습니다.
+다음은 제가 맡고 있는 학급(${totalStudents}명)의 다면적 심리 및 학교생활 설문 종합 데이터 상세 요약(정량적 통계 포함)입니다.
+이를 심층 분석하여, 활기차고 안정적인 학급 문화를 만들기 위해 오늘 당장 제가 학급에서 실천할 수 있는 구체적인 관리 및 지도 팁 3가지(또는 그 이상)를 제시해주세요.
 
 [학급 종합 요약 정보]
-- 총 인원: ${totalStudents}명 (${genderInfo})
-- 학급 내 선호 MBTI 유형: ${topMbti || '데이터 부족'}
+- 총 인원: ${totalStudents}명
+- 학급 내 선호 MBTI 유형 등역: ${topMbti || '데이터 부족'}
 - 학급 전체에서 두드러지는 공통 강점들 (선택 인원): ${topStrengths || '데이터 부족'}
 - 학급 전체에서 주의 깊게 살펴보고 보완해야 할 점들 (선택 인원): ${topWeaknesses || '데이터 부족'}
 ${factorStr}
-${surveyDistributionStr}
 
-선생님(당신)은 위 제공된 모든 문항의 응답 분포와 매핑된 평가 요소를 꼼꼼히 심층 분석하여, 활기차고 안정적인 학급 문화를 만들기 위해 오늘 당장 학급에서 실천할 수 있는 구체적인 관리 및 지도 팁 3가지를 제시해주세요.
-
-특히, 다음 사항을 반드시 포함해주세요:
-1. 설문 응답 분포 중 답변이 한쪽으로 치우쳐 있거나(예: 1~2점에 다수 몰림), 전체 학급 차원에서 보완이 절실해 보이는 핵심 문제 요인을 1~2가지 정확히 집어내세요.
-2. 위에서 발견한 취약점을 극복할 수 있도록 전체 학급 차원의 협동 활동이나 조종례 시간 활용 팁을 구체적으로 제공하세요.
-
+추가로, 위 요인별 문항 매핑(정량 분석) 지표 중 상대적으로 수치가 가장 낮거나 보완이 절실해 보이는 영역을 1~2가지 꼭 집어내어,
+이를 극복할 수 있는 전체 학급 차원의 협동 활동이나 조종례 시간 활용 팁을 포함해주세요.
 어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시길 바랍니다.`;
->>>>>>> b2b9e7caaf8fbf5108c202ce08584a94b7b373ec
 
-어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주세요.`;
-
-    openAiSiteModal(prompt, "학급 전체 종합 정보(설문질문 전체+문항별 응답 분포 포함) 컨설팅 프롬프트가 복사되었습니다!");
+    openAiSiteModal(prompt, "학급 전체 요약 정보와 컨설팅 프롬프트가 복사되었습니다!");
 };
 
-window.startGeminiConsulting = function () {
+window.startGeminiConsulting = function() {
     const studentIdx = document.getElementById('studentSelect').value;
     if (studentIdx === "") return alert("학생을 먼저 선택해주세요.");
-
+    
     const row = parsedData[studentIdx];
     const name = getStudentName(row);
     const meta = getStudentMeta(row);
@@ -1440,13 +1042,13 @@ window.startGeminiConsulting = function () {
 
     const rowKeys = Object.keys(row).filter(k => !k.startsWith('_'));
     const rowValues = Object.values(row);
-    const surveyKeys = rowKeys.filter(k => /^\d+\./.test(k));
+    const surveyKeys = rowKeys.filter(k => /^\d+\./.test(k)); 
     const finalSurveyKeys = surveyKeys.length > 0 ? surveyKeys : rowKeys.slice(4);
 
     let gradeStr = String(row['학년'] || rowValues[0] || "O");
     let targetSurvey = SURVEY_DATA["5~6학년용"];
-    if (gradeStr.includes('1') || gradeStr.includes('2')) targetSurvey = SURVEY_DATA["1~2학년용"];
-    else if (gradeStr.includes('3') || gradeStr.includes('4')) targetSurvey = SURVEY_DATA["3~4학년용"];
+    if(gradeStr.includes('1') || gradeStr.includes('2')) targetSurvey = SURVEY_DATA["1~2학년용"];
+    else if(gradeStr.includes('3') || gradeStr.includes('4')) targetSurvey = SURVEY_DATA["3~4학년용"];
 
     let flatEvals = [];
     if (targetSurvey) {
@@ -1483,10 +1085,10 @@ function initChatOverlay() {
     chatHistory = [];
     document.getElementById('chatBody').innerHTML = '';
     document.getElementById('chatOverlay').style.display = 'block';
-
+    
     // System Prompt 초기화
     addChatBubble("bot", `<i class="fa-solid fa-spinner fa-spin"></i> 연결 중...`);
-
+    
     callGeminiApi(currentChatContext).then(resText => {
         document.getElementById('chatBody').innerHTML = '';
         addChatBubble("bot", resText);
@@ -1497,7 +1099,7 @@ function initChatOverlay() {
     });
 }
 
-window.closeChatOverlay = function () {
+window.closeChatOverlay = function() {
     document.getElementById('chatOverlay').style.display = 'none';
 };
 
@@ -1513,16 +1115,16 @@ function addChatBubble(role, text) {
     chatBody.scrollTop = chatBody.scrollHeight;
 }
 
-window.sendChatMessage = function () {
+window.sendChatMessage = function() {
     const inputEl = document.getElementById('chatInput');
     const text = inputEl.value.trim();
-    if (!text) return;
-
+    if(!text) return;
+    
     addChatBubble("user", text);
     chatHistory.push({ role: 'user', text: text });
     inputEl.value = '';
     inputEl.style.height = 'auto'; // 리사이즈 리셋
-
+    
     // Loading indicator
     const loadingId = "loading-" + Date.now();
     const chatBody = document.getElementById('chatBody');
@@ -1543,7 +1145,7 @@ window.sendChatMessage = function () {
     });
 };
 
-document.getElementById('chatInput').addEventListener('keydown', function (e) {
+document.getElementById('chatInput').addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         sendChatMessage();
@@ -1551,24 +1153,24 @@ document.getElementById('chatInput').addEventListener('keydown', function (e) {
 });
 
 // 자동 리사이징 input
-document.getElementById('chatInput').addEventListener('input', function () {
+document.getElementById('chatInput').addEventListener('input', function() {
     this.style.height = 'auto';
     this.style.height = (this.scrollHeight) + 'px';
 });
 
-window.requestChatAction = function (actionType) {
-    if (chatHistory.length < 2) return alert("대화 내역이 충분하지 않습니다.");
-
+window.requestChatAction = function(actionType) {
+    if(chatHistory.length < 2) return alert("대화 내역이 충분하지 않습니다.");
+    
     let promptMsg = "";
-    if (actionType === 'summary') {
+    if(actionType === 'summary') {
         promptMsg = "지금까지 우리가 나눈 대화 내용을 3~4문장으로 짧게 요약해줘.";
     } else if (actionType === 'organize') {
         promptMsg = "지금까지 우리가 나눈 대화에서 나온 주요 지도 방안, 주의점 등을 글머리 기호(마크다운 리스트)를 사용하여 구체적인 항목별로 깔끔하게 정리해줘.";
     }
-
-    if (promptMsg) {
+    
+    if(promptMsg) {
         addChatBubble("user", `[시스템 요청: ${actionType === 'summary' ? '대화 요약' : '내용 정리'}]`);
-
+        
         const loadingId = "loading-" + Date.now();
         const chatBody = document.getElementById('chatBody');
         const bubble = document.createElement('div');
@@ -1589,15 +1191,15 @@ window.requestChatAction = function (actionType) {
     }
 };
 
-window.downloadChatHistory = function () {
-    if (chatHistory.length === 0) return alert("다운로드할 대화 내역이 없습니다.");
-
+window.downloadChatHistory = function() {
+    if(chatHistory.length === 0) return alert("다운로드할 대화 내역이 없습니다.");
+    
     let textContent = "==== AI 컨설턴트 상담 내역 ====\n\n";
     chatHistory.forEach(msg => {
         let roleName = msg.role === 'user' ? "선생님" : "AI 컨설턴트";
         textContent += `▶ ${roleName}\n${msg.text}\n\n-------------------------------\n\n`;
     });
-
+    
     const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1611,18 +1213,18 @@ window.downloadChatHistory = function () {
 
 
 // Survey Preview Modal Logic
-window.openSurveyPreview = function (grade) {
+window.openSurveyPreview = function(grade) {
     const modal = document.getElementById('surveyPreviewModal');
     const title = document.getElementById('surveyPreviewTitle');
     const body = document.getElementById('surveyPreviewBody');
-
+    
     if (!SURVEY_DATA || !SURVEY_DATA[grade]) {
         alert("해당 학년의 설문지 원본 데이터를 찾을 수 없습니다.");
         return;
     }
 
     title.innerText = `[${grade}] 설문지 원본 문항 미리보기`;
-
+    
     let html = '';
     SURVEY_DATA[grade].forEach(section => {
         html += `<div class="survey-section-header">${section.section}</div>`;
@@ -1640,7 +1242,7 @@ window.openSurveyPreview = function (grade) {
     modal.style.display = 'flex';
 };
 
-window.closeSurveyPreview = function () {
+window.closeSurveyPreview = function() {
     const modal = document.getElementById('surveyPreviewModal');
     if (modal) {
         modal.style.display = 'none';
@@ -1648,7 +1250,7 @@ window.closeSurveyPreview = function () {
 };
 
 // Close modal when clicking outside
-window.addEventListener('click', function (event) {
+window.addEventListener('click', function(event) {
     const modal = document.getElementById('surveyPreviewModal');
     if (event.target === modal) {
         closeSurveyPreview();
@@ -1656,24 +1258,24 @@ window.addEventListener('click', function (event) {
 });
 
 // Student Raw Data Modal
-window.showStudentRawData = function (index) {
+window.showStudentRawData = function(index) {
     const row = parsedData[index];
     const name = getStudentName(row);
     const modal = document.getElementById('surveyPreviewModal');
     const title = document.getElementById('surveyPreviewTitle');
     const body = document.getElementById('surveyPreviewBody');
-
+    
     title.innerText = `[${name}] 제출 완료 원본 응답 상세 보기`;
-
+    
     let html = '<div style="background:#F8FAFC; padding:15px; border-radius:8px; margin-bottom:15px;">';
     html += `<strong>응답 항목 및 제출 값 매핑</strong> (스프레드시트에 입력된 헤더 순서대로 표기)`;
     html += '</div>';
 
     html += '<table style="width:100%; border-collapse: collapse; font-size: 0.95rem;">';
     html += '<thead><tr><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">항목 헤더</th><th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">학생 응답 값</th></tr></thead><tbody>';
-
+    
     Object.keys(row).forEach(key => {
-        if (!key.startsWith('_')) {
+        if(!key.startsWith('_')) {
             html += `<tr>
                 <td style="padding:12px; border-bottom:1px solid #eee; font-weight:500; width:40%;">${key}</td>
                 <td style="padding:12px; border-bottom:1px solid #eee; color: var(--text-main);">${row[key]}</td>
@@ -1687,62 +1289,62 @@ window.showStudentRawData = function (index) {
 };
 
 // AI Site Modal Logic
-window.openAiSiteModal = function (textToCopy, customMessage) {
+window.openAiSiteModal = function(textToCopy, customMessage) {
     navigator.clipboard.writeText(textToCopy).then(() => {
         const msgEl = document.getElementById('aiSiteModalMessage');
-        if (msgEl) msgEl.innerText = customMessage || "원하시는 AI 사이트로 이동하여 붙여넣기(Ctrl+V) 하세요.";
+        if(msgEl) msgEl.innerText = customMessage || "원하시는 AI 사이트로 이동하여 붙여넣기(Ctrl+V) 하세요.";
         document.getElementById('aiSiteModal').style.display = 'flex';
     }).catch(err => {
         console.error("클립보드 실패:", err);
         alert("클립보드 복사에 실패했습니다.");
     });
 };
-window.closeAiSiteModal = function () {
+window.closeAiSiteModal = function() {
     document.getElementById('aiSiteModal').style.display = 'none';
 };
-window.openAiSite = function (url) {
+window.openAiSite = function(url) {
     window.open(url, "_blank");
     closeAiSiteModal();
 };
 
 // Toggle 2nd Semester AI UI
-window.toggleSecondSemester = function () {
+window.toggleSecondSemester = function() {
     const isChecked = document.getElementById('aiSecondSemesterCheck').checked;
     const secContainer = document.getElementById('secondSemesterSetup');
     const basicLenContainer = document.getElementById('aiLengthContainer');
-
+    
     if (isChecked) {
         secContainer.style.display = 'block';
-        if (basicLenContainer) basicLenContainer.style.opacity = '0.5';
+        if(basicLenContainer) basicLenContainer.style.opacity = '0.5';
     } else {
         secContainer.style.display = 'none';
-        if (basicLenContainer) basicLenContainer.style.opacity = '1';
+        if(basicLenContainer) basicLenContainer.style.opacity = '1';
     }
 };
 
 // Random keywords picker
-window.promptRandomKeywords = function (type) {
-    if (parsedData.length === 0) return alert("데이터가 없습니다. 먼저 분석해주세요.");
-
+window.promptRandomKeywords = function(type) {
+    if(parsedData.length === 0) return alert("데이터가 없습니다. 먼저 분석해주세요.");
+    
     const inputId = type === 'strength' ? 'randomCountStrength' : 'randomCountWeakness';
     const inputObj = document.getElementById(inputId);
-    if (!inputObj) return;
-
+    if(!inputObj) return;
+    
     let count = parseInt(inputObj.value, 10);
-    if (isNaN(count) || count < 0) return alert("올바른 숫자를 입력하세요.");
-
+    if(isNaN(count) || count < 0) return alert("올바른 숫자를 입력하세요.");
+    
     let typeClass = type === 'strength' ? 'strength' : 'weakness';
-
+    
     parsedData.forEach((row, index) => {
         const badgesContainer = document.getElementById(type === 'strength' ? `ai-strengths-${index}` : `ai-weaknesses-${index}`);
-        if (!badgesContainer) return;
+        if(!badgesContainer) return;
 
         const badges = Array.from(badgesContainer.querySelectorAll(`.keyword-badge.${typeClass}`));
-
+        
         // Shuffle
         const shuffled = [...badges].sort(() => 0.5 - Math.random());
         shuffled.forEach((badge, idx) => {
-            if (idx < count) {
+            if(idx < count) {
                 badge.classList.add('active');
             } else {
                 badge.classList.remove('active');
@@ -1752,72 +1354,72 @@ window.promptRandomKeywords = function (type) {
 };
 
 // Select all keywords
-window.selectAllKeywords = function (type) {
-    if (parsedData.length === 0) return;
+window.selectAllKeywords = function(type) {
+    if(parsedData.length === 0) return;
     let typeClass = type === 'strength' ? 'strength' : 'weakness';
     parsedData.forEach((row, index) => {
         const badgesContainer = document.getElementById(type === 'strength' ? `ai-strengths-${index}` : `ai-weaknesses-${index}`);
-        if (!badgesContainer) return;
+        if(!badgesContainer) return;
         const badges = Array.from(badgesContainer.querySelectorAll(`.keyword-badge.${typeClass}`));
         badges.forEach(badge => badge.classList.add('active'));
     });
 };
 
 // Adjust AI Length setup
-window.adjustAiLength = function (delta) {
+window.adjustAiLength = function(delta) {
     const input = document.getElementById('aiLengthSetup');
-    if (input) {
+    if(input) {
         let val = parseInt(input.value, 10);
-        if (isNaN(val)) val = 300;
+        if(isNaN(val)) val = 300;
         val += delta;
-        if (val < 50) val = 50;
+        if(val < 50) val = 50; 
         input.value = val;
         syncTerm1Length();
     }
 };
 
-window.syncTerm1Length = function () {
+window.syncTerm1Length = function() {
     const input = document.getElementById('aiLengthSetup');
     const term1 = document.getElementById('aiTerm1Length');
-    if (input && term1) {
+    if(input && term1) {
         term1.value = input.value;
     }
 };
 
-window.adjustTermLength = function (id, delta) {
+window.adjustTermLength = function(id, delta) {
     const input = document.getElementById(id);
-    if (input) {
+    if(input) {
         let val = parseInt(input.value, 10);
-        if (isNaN(val)) val = (id === 'aiLineBreaks' ? 2 : 200);
+        if(isNaN(val)) val = (id === 'aiLineBreaks' ? 2 : 200);
         val += delta;
-        if (id === 'aiLineBreaks') {
-            if (val < 1) val = 1;
-            if (val > 10) val = 10;
+        if(id === 'aiLineBreaks') {
+            if(val < 1) val = 1;
+            if(val > 10) val = 10;
         } else {
-            if (val < 50) val = 50;
+            if(val < 50) val = 50;
         }
         input.value = val;
     }
 };
 
 // Download AI Generated Results as CSV
-window.downloadAiResults = function () {
-    if (parsedData.length === 0) return alert("데이터가 없습니다.");
-
+window.downloadAiResults = function() {
+    if(parsedData.length === 0) return alert("데이터가 없습니다.");
+    
     let csvContent = "\uFEFF"; // BOM for Excel UTF-8
     csvContent += "No,학생 이름,정보,선택된 강점 키워드,선택된 보완 키워드,AI 자동생성 결과\n";
-
+    
     parsedData.forEach((row, index) => {
         const name = getStudentName(row);
         const meta = getStudentMeta(row);
-
+        
         const strengthNodes = document.querySelectorAll(`#ai-strengths-${index} .keyword-badge.strength.active`);
         const weaknessNodes = document.querySelectorAll(`#ai-weaknesses-${index} .keyword-badge.weakness.active`);
         const activeStrengths = Array.from(strengthNodes).map(n => n.innerText).join(', ');
         const activeWeaknesses = Array.from(weaknessNodes).map(n => n.innerText).join(', ');
-
+        
         const aiResult = row._aiGenerated ? row._aiGenerated.replace(/"/g, '""') : "미생성";
-
+        
         const csvRow = [
             index + 1,
             `"${name}"`,
@@ -1828,22 +1430,22 @@ window.downloadAiResults = function () {
         ];
         csvContent += csvRow.join(",") + "\n";
     });
-
+    
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `행동발달_자동생성결과_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `행동발달_자동생성결과_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 };
 
 // Batch Print All Personal Reports
-window.downloadAllPersonalReports = function () {
-    if (parsedData.length === 0) return alert("데이터가 없습니다.");
-
-    if (!confirm("모든 학생의 개인 리포트를 일괄 출력(PDF 저장) 하시겠습니까?\n\n생성 시 브라우저 인쇄 창이 나타나며, '[PDF로 저장]'을 선택해주세요.")) {
+window.downloadAllPersonalReports = function() {
+    if(parsedData.length === 0) return alert("데이터가 없습니다.");
+    
+    if(!confirm("모든 학생의 개인 리포트를 일괄 출력(PDF 저장) 하시겠습니까?\n\n생성 시 브라우저 인쇄 창이 나타나며, '[PDF로 저장]'을 선택해주세요.")) {
         return;
     }
 
@@ -1869,35 +1471,35 @@ window.downloadAllPersonalReports = function () {
     const delay = ms => new Promise(res => setTimeout(res, ms));
 
     const renderAll = async () => {
-        for (let i = 0; i < parsedData.length; i++) {
+        for(let i = 0; i < parsedData.length; i++) {
             // Render specific student
             renderStudentProfile(i);
-
+            
             // Allow time for charts to render and animations to finish
             await delay(500);
 
             // Clone the rendered student profile card
             const profileCard = document.getElementById('studentProfile');
-            if (profileCard) {
+            if(profileCard) {
                 const clone = profileCard.cloneNode(true);
                 // Ensure the cloned node is visible and has page break
                 clone.style.display = 'block';
                 clone.style.pageBreakAfter = 'always';
                 clone.style.pageBreakInside = 'avoid';
-
+                
                 // Unfortunately, canvas elements are not cloned properly by wrapper.cloneNode(true)
                 // We need to convert canvas to image for printing
                 const originalCanvases = profileCard.querySelectorAll('canvas');
                 const clonedCanvases = clone.querySelectorAll('canvas');
-
+                
                 originalCanvases.forEach((canvas, idx) => {
                     const img = document.createElement('img');
                     img.src = canvas.toDataURL('image/png');
                     img.style.width = '100%';
                     img.style.maxWidth = canvas.style.maxWidth || '350px';
-
+                    
                     // Replace canvas with image in clone
-                    if (clonedCanvases[idx] && clonedCanvases[idx].parentNode) {
+                    if(clonedCanvases[idx] && clonedCanvases[idx].parentNode) {
                         clonedCanvases[idx].parentNode.replaceChild(img, clonedCanvases[idx]);
                     }
                 });
@@ -1913,7 +1515,7 @@ window.downloadAllPersonalReports = function () {
         document.body.removeChild(printContainer);
         appContainer.style.display = 'flex';
         personalStatsTemplate.style.display = originalDisplay;
-
+        
         if (originalSelectIndex !== "") {
             renderStudentProfile(originalSelectIndex);
             document.getElementById('studentSelect').value = originalSelectIndex;
@@ -1926,16 +1528,16 @@ window.downloadAllPersonalReports = function () {
 };
 
 // Data Backup (Export/Download JSON)
-window.exportData = function () {
-    if (parsedData.length === 0 && chatHistory.length === 0) {
+window.exportData = function() {
+    if(parsedData.length === 0 && chatHistory.length === 0) {
         return alert("백업할 데이터가 아직 없습니다. 학생 데이터를 분석하거나 작업을 진행한 후 백업해주세요.");
     }
 
-    const defaultFileName = `해피스쿨_백업데이터_${new Date().toISOString().slice(0, 10)}`;
+    const defaultFileName = `해피스쿨_백업데이터_${new Date().toISOString().slice(0,10)}`;
     const userFileName = prompt(`백업 파일을 생성합니다.\n저장할 파일 이름을 입력해주세요.\n(데이터를 백업해두시면 언제든 이전 작업 상태, AI 생성결과, 설정, 대화 기록 등을 다시 불러와서 이어서 작업하실 수 있습니다.)`, defaultFileName);
-
-    if (userFileName === null) return; // cancelled
-
+    
+    if(userFileName === null) return; // cancelled
+    
     const finalFileName = userFileName.trim() ? userFileName.trim() : defaultFileName;
 
     const backupData = {
@@ -1956,7 +1558,7 @@ window.exportData = function () {
     const dataStr = JSON.stringify(backupData, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-
+    
     const a = document.createElement("a");
     a.href = url;
     a.download = `${finalFileName}.json`;
@@ -1967,20 +1569,20 @@ window.exportData = function () {
 };
 
 // Data Import (Restore from JSON)
-window.importData = function (event) {
+window.importData = function(event) {
     const file = event.target.files[0];
-    if (!file) return;
+    if(!file) return;
 
-    if (!confirm("불러오기를 진행하시면 현재 입력된 분석 데이터와 작업 내역이 모두 초기화되고, 백업 파일 내용으로 덮어씌워집니다.\n계속 진행하시겠습니까?")) {
+    if(!confirm("불러오기를 진행하시면 현재 입력된 분석 데이터와 작업 내역이 모두 초기화되고, 백업 파일 내용으로 덮어씌워집니다.\n계속 진행하시겠습니까?")) {
         event.target.value = ''; // reset so same file can be triggered again
         return;
     }
 
     const reader = new FileReader();
-    reader.onload = function (e) {
+    reader.onload = function(e) {
         try {
             const result = JSON.parse(e.target.result);
-            if (!result.parsedData || !Array.isArray(result.parsedData)) {
+            if(!result.parsedData || !Array.isArray(result.parsedData)) {
                 throw new Error("유효하지 않은 백업 파일 포맷입니다.");
             }
 
@@ -1989,25 +1591,25 @@ window.importData = function (event) {
             chatHistory = result.chatHistory || [];
 
             // Restore UI Prefs
-            if (result.uiPrefs) {
-                if (document.getElementById('aiGradeSetup')) document.getElementById('aiGradeSetup').value = result.uiPrefs.aiGradeSetup || '';
-                if (document.getElementById('aiLengthSetup')) document.getElementById('aiLengthSetup').value = result.uiPrefs.aiLengthSetup || '300';
-                if (document.getElementById('aiTerm1Length')) document.getElementById('aiTerm1Length').value = result.uiPrefs.aiTerm1Length || '200';
-                if (document.getElementById('aiTerm2Length')) document.getElementById('aiTerm2Length').value = result.uiPrefs.aiTerm2Length || '200';
-                if (document.getElementById('aiLineBreaks')) document.getElementById('aiLineBreaks').value = result.uiPrefs.aiLineBreaks || '2';
-                if (document.getElementById('aiCustomRequest')) document.getElementById('aiCustomRequest').value = result.uiPrefs.aiCustomRequest || '';
-
+            if(result.uiPrefs) {
+                if(document.getElementById('aiGradeSetup')) document.getElementById('aiGradeSetup').value = result.uiPrefs.aiGradeSetup || '';
+                if(document.getElementById('aiLengthSetup')) document.getElementById('aiLengthSetup').value = result.uiPrefs.aiLengthSetup || '300';
+                if(document.getElementById('aiTerm1Length')) document.getElementById('aiTerm1Length').value = result.uiPrefs.aiTerm1Length || '200';
+                if(document.getElementById('aiTerm2Length')) document.getElementById('aiTerm2Length').value = result.uiPrefs.aiTerm2Length || '200';
+                if(document.getElementById('aiLineBreaks')) document.getElementById('aiLineBreaks').value = result.uiPrefs.aiLineBreaks || '2';
+                if(document.getElementById('aiCustomRequest')) document.getElementById('aiCustomRequest').value = result.uiPrefs.aiCustomRequest || '';
+                
                 const secCheck = document.getElementById('aiSecondSemesterCheck');
-                if (secCheck) {
+                if(secCheck) {
                     secCheck.checked = result.uiPrefs.aiSecondSemesterCheck || false;
                     const secContainer = document.getElementById('secondSemesterSetup');
                     const basicLenContainer = document.getElementById('aiLengthContainer');
                     if (secCheck.checked) {
-                        if (secContainer) secContainer.style.display = 'block';
-                        if (basicLenContainer) basicLenContainer.style.opacity = '0.5';
+                        if(secContainer) secContainer.style.display = 'block';
+                        if(basicLenContainer) basicLenContainer.style.opacity = '0.5';
                     } else {
-                        if (secContainer) secContainer.style.display = 'none';
-                        if (basicLenContainer) basicLenContainer.style.opacity = '1';
+                        if(secContainer) secContainer.style.display = 'none';
+                        if(basicLenContainer) basicLenContainer.style.opacity = '1';
                     }
                 }
             }
@@ -2017,11 +1619,11 @@ window.importData = function (event) {
             renderClassConsulting();
             initStudentSelect();
             renderAiDataTable();
-
+            
             document.querySelector('.preview-area').style.display = 'block';
             alert("백업 데이터를 성공적으로 불러왔습니다!");
-
-        } catch (err) {
+            
+        } catch(err) {
             alert("백업 파일 파싱 중 오류가 발생했습니다: " + err.message);
         } finally {
             // Reset input so the same file can be loaded again if needed
@@ -2030,3 +1632,4 @@ window.importData = function (event) {
     };
     reader.readAsText(file);
 };
+
