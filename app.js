@@ -31,6 +31,28 @@ menuItems.forEach(item => {
     });
 });
 
+// 데이터 미리보기 테이블 업데이트 함수
+function updatePreviewTable() {
+    if (parsedData.length === 0) {
+        previewArea.style.display = 'none';
+        return;
+    }
+
+    const headers = Object.keys(parsedData[0]).filter(k => !k.startsWith('_'));
+    previewTable.querySelector('thead').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+    let tbodyHtml = '';
+    parsedData.forEach(row => {
+        let tdHtml = '';
+        headers.forEach(h => {
+            tdHtml += `<td>${row[h] || ''}</td>`;
+        });
+        tbodyHtml += `<tr>${tdHtml}</tr>`;
+    });
+    previewTable.querySelector('tbody').innerHTML = tbodyHtml;
+    previewArea.style.display = 'block';
+}
+
 // Clipboard Parsing Logic
 parseDataBtn.addEventListener('click', () => {
     const rawData = dataTextarea.value.trim();
@@ -46,29 +68,21 @@ parseDataBtn.addEventListener('click', () => {
     }
 
     const headers = rows[0].split('\t').map(h => h.trim());
-
     parsedData = [];
-    previewTable.querySelector('thead').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
 
-    let tbodyHtml = '';
     for (let i = 1; i < rows.length; i++) {
         const cols = rows[i].split('\t');
         if (cols.length === headers.length || cols.length > 3) {
             let rowObj = {};
-            let tdHtml = '';
             cols.forEach((col, index) => {
                 let header = headers[index] ? headers[index] : `Col${index}`;
                 rowObj[header] = col.trim();
-                tdHtml += `<td>${col.trim()}</td>`;
             });
             parsedData.push(rowObj);
-            tbodyHtml += `<tr>${tdHtml}</tr>`;
         }
     }
-    previewTable.querySelector('tbody').innerHTML = tbodyHtml;
-    previewArea.style.display = 'block';
 
-    // Populate Select & AI Table
+    updatePreviewTable();
     populateStudentSelect();
     populateAiTable();
     alert(`성공적으로 ${parsedData.length}명의 데이터를 파싱했습니다.`);
@@ -1926,18 +1940,13 @@ window.downloadAllPersonalReports = function () {
 };
 
 // Data Backup (Export/Download JSON)
-window.exportData = function () {
+window.exportData = async function () {
     if (parsedData.length === 0 && chatHistory.length === 0) {
         return alert("백업할 데이터가 아직 없습니다. 학생 데이터를 분석하거나 작업을 진행한 후 백업해주세요.");
     }
 
-    const defaultFileName = `해피스쿨_백업데이터_${new Date().toISOString().slice(0, 10)}`;
-    const userFileName = prompt(`백업 파일을 생성합니다.\n저장할 파일 이름을 입력해주세요.\n(데이터를 백업해두시면 언제든 이전 작업 상태, AI 생성결과, 설정, 대화 기록 등을 다시 불러와서 이어서 작업하실 수 있습니다.)`, defaultFileName);
-
-    if (userFileName === null) return; // cancelled
-
-    const finalFileName = userFileName.trim() ? userFileName.trim() : defaultFileName;
-
+    const defaultFileName = `해피스쿨_백업데이터_${new Date().toISOString().slice(0, 10)}.json`;
+    
     const backupData = {
         timestamp: new Date().toISOString(),
         parsedData: parsedData,
@@ -1954,16 +1963,39 @@ window.exportData = function () {
     };
 
     const dataStr = JSON.stringify(backupData, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${finalFileName}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // 저장 위치 선택 기능 (File System Access API) 지원 여부 확인
+    if ('showSaveFilePicker' in window) {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: defaultFileName,
+                types: [{
+                    description: 'JSON Files',
+                    accept: { 'application/json': ['.json'] },
+                }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(dataStr);
+            await writable.close();
+            alert("백업 파일이 성공적으로 저장되었습니다.");
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.error("저장 실패:", err);
+                alert("파일 저장 중 오류가 발생했습니다.");
+            }
+        }
+    } else {
+        // Fallback: 기존 다운로드 방식
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = defaultFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
 };
 
 // Data Import (Restore from JSON)
@@ -2012,13 +2044,12 @@ window.importData = function (event) {
                 }
             }
 
-            // Re-render Views
-            renderPreviewTable();
-            renderClassConsulting();
-            initStudentSelect();
-            renderAiDataTable();
+            // Re-render Views (함수명 수정)
+            updatePreviewTable(); // renderPreviewTable -> updatePreviewTable
+            if (typeof updateClassCharts === 'function') updateClassCharts(); // renderClassConsulting -> updateClassCharts
+            if (typeof populateStudentSelect === 'function') populateStudentSelect(); // initStudentSelect -> populateStudentSelect
+            if (typeof populateAiTable === 'function') populateAiTable(); // renderAiDataTable -> populateAiTable
 
-            document.querySelector('.preview-area').style.display = 'block';
             alert("백업 데이터를 성공적으로 불러왔습니다!");
 
         } catch (err) {
