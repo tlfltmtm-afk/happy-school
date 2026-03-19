@@ -5,15 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>설문과 컨설팅 그리고 행발문장</title>
+    <!-- CSS -->
     <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
     <div class="app-container">
+        <!-- ---------------- 사이드바 내비게이션 ---------------- -->
         <nav class="sidebar">
             <div class="logo">
                 <i class="fa-solid fa-school"></i>
@@ -47,8 +52,10 @@
             </div>
         </nav>
 
+        <!-- ---------------- 메인 컨텐츠 영역 ---------------- -->
         <main class="main-content">
 
+            <!-- 1. 사용 설명서 (홈) -->
             <section id="guide" class="page-section active">
                 <header>
                     <h1>선생님, 환영합니다!</h1>
@@ -73,6 +80,7 @@
                 </div>
             </section>
 
+            <!-- 2. 구글 설문지 사본 만들기 -->
             <section id="form-copy" class="page-section">
                 <header>
                     <h1>구글 설문지 사본 만들기</h1>
@@ -116,6 +124,7 @@
                 </div>
             </section>
 
+            <!-- 3. 데이터 입력 -->
             <section id="data-input" class="page-section">
                 <header>
                     <h1>응답 결과 데이터 입력</h1>
@@ -141,6 +150,7 @@
                 </div>
             </section>
 
+            <!-- 4. 학급 전체 컨설팅 -->
             <section id="class-stats" class="page-section">
                 <header
                     style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
@@ -176,6 +186,7 @@
                     <div class="chart-card mbti-card">
                         <h3>학급 MBTI 성향 분포</h3>
                         <div id="mbtiDistribution" class="mbti-container">
+                            <!-- JS Injection -->
                         </div>
                     </div>
                 </div>
@@ -184,27 +195,26 @@
                     <h3 style="color:var(--text-main); margin-bottom: 15px;"><i class="fa-solid fa-triangle-exclamation"
                             style="color:#E53E3E;"></i> 전문가 기준 관심 필요 학생</h3>
                     <div id="highRiskList" class="risk-list-container">
+                        <!-- JS Injection -->
                     </div>
                 </div>
             </section>
 
+            <!-- 5. 개인별 맞춤 컨설팅 -->
             <section id="personal-stats" class="page-section">
                 <header
                     style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
                     <div>
                         <h1>개인별 맞춤 컨설팅</h1>
                         <p>분석할 학생을 아래 목록에서 선택해주세요.</p>
-                         <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+                        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
                             <select id="studentSelect" class="form-select" style="margin-top:0;">
                                 <option value="">-- 학생을 선택하세요 --</option>
                             </select>
-                            <button id="studentSortBtn" class="btn btn-outline-secondary btn-sm" onclick="toggleStudentSort()" title="번호순으로 정렬" style="flex-shrink:0;">
-                                <i class="fa-solid fa-arrow-down-1-9"></i>
-                            </button>
                             <button class="btn btn-outline-tertiary btn-sm" onclick="window.print()"><i
-                                    class="fa-solid fa-file-pdf"></i> 리포트 저장</button>
+                                    class="fa-solid fa-file-pdf"></i> 현재 학생 리포트 저장</button>
                             <button class="btn btn-outline-primary btn-sm" onclick="downloadAllPersonalReports()"><i
-                                    class="fa-solid fa-file-pdf"></i> 전체 저장</button>
+                                    class="fa-solid fa-file-pdf"></i> 전체 학생 일괄 저장</button>
                         </div>
                     </div>
                     <div class="risk-nav-wrapper" style="position:relative;">
@@ -214,6 +224,7 @@
                         </button>
                         <div id="riskDropdown" class="risk-dropdown"
                             style="display:none; position:absolute; right:0; top:40px; width:300px; background:white; border:1px solid #ddd; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-radius:8px; z-index:100; max-height:400px; overflow-y:auto; padding:10px;">
+                            <!-- JS Injection -->
                         </div>
                     </div>
                 </header>
@@ -227,17 +238,20 @@
                                 <p id="studentMeta">6학년 1반 1번</p>
                             </div>
                         </div>
-                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:nowrap;">
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
                             <div class="badges" id="studentMbtiContainer">
                                 <span class="badge" id="studentMbti"
-                                    style="font-size:1.2rem; font-weight:800; padding:5px 12px; background-color:#FDE047; color:#854D0E; white-space:nowrap;">MBTI: ENTP</span>
+                                    style="font-size:1.4rem; font-weight:800; padding:6px 14px; background-color:#FDE047; color:#854D0E;">MBTI: ENTP</span>
                             </div>
-                            <div id="studentMiStrengths" style="font-size:0.85rem; font-weight:600; background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:12px; white-space:nowrap;">강점지능: 대기중</div>
-                            <div id="studentHappinessScore" style="font-size:0.85rem; font-weight:600; white-space:nowrap;">행복: ☆☆☆☆☆</div>
-                            <div id="studentAdaptScore" style="font-size:0.85rem; font-weight:600; white-space:nowrap;">학교적응: ☆☆☆☆☆</div>
+                            <div id="studentMiStrengths" style="font-size:0.95rem; font-weight:600; background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:12px;">지능 지표: 대기중</div>
+                            <div style="display:flex; gap:15px; font-size:0.95rem; font-weight:600;">
+                                <div id="studentHappinessScore">행복: ☆☆☆☆☆</div>
+                                <div id="studentAdaptScore">학교적응: ☆☆☆☆☆</div>
+                            </div>
                         </div>
                     </div>
                     <div class="profile-body" style="margin-top:20px;">
+                        <!-- TABS HEADER -->
                         <div class="profile-tabs"
                             style="display:flex; gap:10px; border-bottom:2px solid #E2E8F0; margin-bottom:20px;">
                             <button class="tab-btn active" data-tab="tab-summary"
@@ -251,10 +265,12 @@
                                 응답</button>
                         </div>
 
+                        <!-- TABS CONTENT -->
                         <div class="tab-content-container">
                             <div id="tab-summary" class="tab-pane active" style="display:block;">
                                 <div class="charts-wrap" style="grid-template-columns: 2fr 1fr; gap: 20px;">
                                     <div class="text-card" id="studentSummary" style="height: 100%;">
+                                        <!-- JS Injection -->
                                     </div>
                                     <div class="chart-card ai-consult-card"
                                         style="margin-top:0; border-color:var(--primary-color); border-width: 2px; height: 100%; display: flex; flex-direction: column;">
@@ -294,6 +310,7 @@
                                         <h3>행복 6요소 관련 설문 응답</h3>
                                         <div id="studentHappinessRaw"
                                             style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                            <!-- JS Injection -->
                                         </div>
                                     </div>
                                 </div>
@@ -304,12 +321,14 @@
                                     <div class="chart-card">
                                         <h3>MBTI 심층 분석</h3>
                                         <div id="studentMbtiDetail" style="margin-top:15px; line-height:1.6;">
+                                            <!-- JS Injection -->
                                         </div>
                                     </div>
                                     <div class="chart-card">
                                         <h3>MBTI 관련 설문 응답</h3>
                                         <div id="studentMbtiRaw"
                                             style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                            <!-- JS Injection -->
                                         </div>
                                     </div>
                                 </div>
@@ -325,6 +344,7 @@
                                         <h3>다중지능 관련 설문 응답</h3>
                                         <div id="studentMiRaw"
                                             style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                            <!-- JS Injection -->
                                         </div>
                                     </div>
                                 </div>
@@ -340,6 +360,7 @@
                                         <h3>학교적응력 관련 설문 응답</h3>
                                         <div id="studentAdaptRaw"
                                             style="margin-top:15px; font-size:0.95rem; max-height: 400px; overflow-y: auto;">
+                                            <!-- JS Injection -->
                                         </div>
                                     </div>
                                 </div>
@@ -349,6 +370,7 @@
                                 <div class="chart-card">
                                     <h3>설문조사 원본 응답</h3>
                                     <div id="studentSurveyRaw" style="margin-top:15px; font-size:0.95rem;">
+                                        <!-- JS Injection -->
                                     </div>
                                 </div>
                             </div>
@@ -357,6 +379,7 @@
                 </div>
             </section>
 
+            <!-- 6. AI 행동발달 생성기 -->
             <section id="ai-generator" class="page-section">
                 <header
                     style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:15px;">
@@ -424,14 +447,12 @@
                                         style="display:block; font-size:0.9rem; color:var(--text-muted); margin-bottom:5px;">1학기
                                         분량 (자)</label>
                                     <div style="display:flex; align-items:center; gap:5px;">
-                                        <button class="btn btn-outline-secondary btn-sm"
-                                            onclick="adjustTermLength('aiTerm1Length', -50)"
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="adjustTermLength('aiTerm1Length', -50)"
                                             style="padding:8px 12px;"><i class="fa-solid fa-minus"></i></button>
                                         <input type="number" id="aiTerm1Length" class="form-select"
                                             style="flex:1; margin-top:0; padding:8px; text-align:center;" value="200">
-                                        <button class="btn btn-outline-secondary btn-sm"
-                                            onclick="adjustTermLength('aiTerm1Length', 50)" style="padding:8px 12px;"><i
-                                                class="fa-solid fa-plus"></i></button>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="adjustTermLength('aiTerm1Length', 50)"
+                                            style="padding:8px 12px;"><i class="fa-solid fa-plus"></i></button>
                                     </div>
                                 </div>
                                 <div style="flex:0.8;">
@@ -439,14 +460,12 @@
                                         style="display:block; font-size:0.9rem; color:var(--text-muted); margin-bottom:5px; text-align:center;">
                                         문단 여백 (줄바꿈 수)</label>
                                     <div style="display:flex; align-items:center; gap:5px;">
-                                        <button class="btn btn-outline-secondary btn-sm"
-                                            onclick="adjustTermLength('aiLineBreaks', -1)" style="padding:8px 12px;"><i
-                                                class="fa-solid fa-minus"></i></button>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="adjustTermLength('aiLineBreaks', -1)"
+                                            style="padding:8px 12px;"><i class="fa-solid fa-minus"></i></button>
                                         <input type="number" id="aiLineBreaks" class="form-select" min="1" max="5"
                                             style="flex:1; margin-top:0; padding:8px; text-align:center;" value="2">
-                                        <button class="btn btn-outline-secondary btn-sm"
-                                            onclick="adjustTermLength('aiLineBreaks', 1)" style="padding:8px 12px;"><i
-                                                class="fa-solid fa-plus"></i></button>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="adjustTermLength('aiLineBreaks', 1)"
+                                            style="padding:8px 12px;"><i class="fa-solid fa-plus"></i></button>
                                     </div>
                                 </div>
                                 <div style="flex:1;">
@@ -454,14 +473,12 @@
                                         style="display:block; font-size:0.9rem; color:var(--text-muted); margin-bottom:5px;">2학기
                                         분량 (자)</label>
                                     <div style="display:flex; align-items:center; gap:5px;">
-                                        <button class="btn btn-outline-secondary btn-sm"
-                                            onclick="adjustTermLength('aiTerm2Length', -50)"
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="adjustTermLength('aiTerm2Length', -50)"
                                             style="padding:8px 12px;"><i class="fa-solid fa-minus"></i></button>
                                         <input type="number" id="aiTerm2Length" class="form-select"
                                             style="flex:1; margin-top:0; padding:8px; text-align:center;" value="200">
-                                        <button class="btn btn-outline-secondary btn-sm"
-                                            onclick="adjustTermLength('aiTerm2Length', 50)" style="padding:8px 12px;"><i
-                                                class="fa-solid fa-plus"></i></button>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="adjustTermLength('aiTerm2Length', 50)"
+                                            style="padding:8px 12px;"><i class="fa-solid fa-plus"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -517,7 +534,7 @@
                                                 class="fa-solid fa-check-double"></i></button>
                                     </div>
                                 </th>
-                                <th width="13%">
+                                <th width="15%">
                                     선택된 보완 키워드 (5개 이하)
                                     <div
                                         style="display:flex; align-items:center; gap:5px; margin-top:5px; font-weight:normal;">
@@ -534,8 +551,7 @@
                                                 class="fa-solid fa-check-double"></i></button>
                                     </div>
                                 </th>
-                                <th width="10%" style="line-height:1.3; color:#6366F1;">개별<br>요구사항</th>
-                                <th width="10%" style="line-height:1.2;">개별생성<br><small>외부AI웹</small></th>
+                                <th width="12%" style="line-height:1.2;">개별생성<br><small>외부AI웹</small></th>
                                 <th width="8%">자동생성 버튼</th>
                                 <th width="25%">자동 생성 결과</th>
                             </tr>
@@ -553,6 +569,7 @@
                 </div>
             </section>
 
+            <!-- Preview Modal -->
             <div id="surveyPreviewModal" class="modal-overlay" style="display:none;">
                 <div class="modal-content" style="max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
                     <div class="modal-header"
@@ -562,12 +579,15 @@
                             style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
                     </div>
                     <div id="surveyPreviewBody" style="line-height: 1.6;">
+                        <!-- JS Injection -->
                     </div>
                     <div class="modal-footer" style="text-align: right; margin-top: 20px;">
                         <button onclick="closeSurveyPreview()" class="btn btn-secondary">닫기</button>
                     </div>
                 </div>
-            </div>
+            </div> <!-- End of surveyPreviewModal -->
+
+            <!-- API Setup Modal -->
             <div id="apiSetupModal" class="modal-overlay" style="display:none; z-index: 9999;">
                 <div class="modal-content" style="max-width: 500px; width: 90%;">
                     <div class="modal-header"
@@ -611,6 +631,7 @@
                 </div>
             </div>
 
+            <!-- AI External Sites Modal -->
             <div id="aiSiteModal" class="modal-overlay" style="display:none; z-index: 10000;">
                 <div class="modal-content"
                     style="max-width: 400px; width: 90%; text-align: center; position: relative;">
@@ -639,6 +660,7 @@
                 </div>
             </div>
 
+            <!-- Chat Overlay Interface -->
             <div id="chatOverlay" class="chat-overlay" style="display:none;">
                 <div class="chat-container">
                     <div class="chat-header">
@@ -674,6 +696,7 @@
         </main>
     </div>
 
+    <!-- Script -->
     <script src="db.js"></script>
     <script src="survey-data.js"></script>
     <script src="app.js"></script>
