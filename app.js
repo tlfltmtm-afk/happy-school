@@ -197,11 +197,11 @@ function populateAiTable() {
 
         const strengthsHtml = row._strengths.map(s => 
             `<span class="keyword-badge strength active" onclick="toggleKeyword(this)">${s}</span>`
-        ).join('');
+        ).join('') + `<button class="keyword-add-btn" title="키워드 직접 추가" onclick="addCustomKeyword(this, 'strength', ${index})">＋</button>`;
         
         const weaknessesHtml = row._weaknesses.map(w => 
             `<span class="keyword-badge weakness active" onclick="toggleKeyword(this)">${w}</span>`
-        ).join('');
+        ).join('') + `<button class="keyword-add-btn weakness-add" title="키워드 직접 추가" onclick="addCustomKeyword(this, 'weakness', ${index})">＋</button>`;
 
         const tr = document.createElement('tr');
         tr.id = `ai-row-${index}`;
@@ -210,6 +210,7 @@ function populateAiTable() {
             <td><strong>${name}</strong><br><small style="color:var(--text-muted)">${meta}</small></td>
             <td id="ai-strengths-${index}">${strengthsHtml}</td>
             <td id="ai-weaknesses-${index}">${weaknessesHtml}</td>
+            <td><textarea id="ai-custom-req-${index}" class="form-select" style="width:100%; min-height:70px; margin:0; font-size:0.85rem; resize:vertical; padding:6px;" placeholder="이 학생에 대한 개별 요구사항 입력 (예: 전학생, 상담 내용 반영 등)"></textarea></td>
             <td><button class="btn btn-outline-primary btn-sm" onclick="copyManualPrompt(${index})" style="width:100%"><i class="fa-solid fa-copy"></i> 외부AI웹</button></td>
             <td><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})"><i class="fa-solid fa-robot"></i></button></td>
             <td id="ai-result-${index}" style="font-size:0.95rem; line-height:1.5; color:var(--text-muted);">
@@ -223,6 +224,21 @@ function populateAiTable() {
 // Toggle Keyword Badge
 window.toggleKeyword = function(el) {
     el.classList.toggle('active');
+};
+
+// Add custom keyword via + button
+window.addCustomKeyword = function(btn, type, index) {
+    const keyword = prompt(`추가할 ${type === 'strength' ? '강점' : '보완'} 키워드를 입력하세요:`);
+    if (!keyword || !keyword.trim()) return;
+    const typeClass = type === 'strength' ? 'strength' : 'weakness';
+    const containerId = type === 'strength' ? `ai-strengths-${index}` : `ai-weaknesses-${index}`;
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const badge = document.createElement('span');
+    badge.className = `keyword-badge ${typeClass} active`;
+    badge.textContent = keyword.trim();
+    badge.onclick = function() { toggleKeyword(this); };
+    container.insertBefore(badge, btn);
 };
 
 // Generate Manual Prompt Text
@@ -240,6 +256,7 @@ window.generateManualPromptText = function(index) {
     const term1Length = document.getElementById('aiTerm1Length')?.value || '200';
     const term2Length = document.getElementById('aiTerm2Length')?.value || '200';
     const customReq = document.getElementById('aiCustomRequest')?.value.trim();
+    const studentCustomReq = document.getElementById(`ai-custom-req-${index}`)?.value.trim();
     
     // Read active badges from DOM
     const strengthNodes = document.querySelectorAll(`#ai-strengths-${index} .keyword-badge.strength.active`);
@@ -269,8 +286,11 @@ window.generateManualPromptText = function(index) {
 
     prompt += `어조는 교사가 학생을 객관적이면서도 애정어린 시선으로 관찰한 긍정적 평어체로, '~함.', '~임.' 으로 끝나게 작성해줘.\n`;
 
+    if (studentCustomReq) {
+        prompt += `- 이 학생 개별 요구사항: ${studentCustomReq}\n`;
+    }
     if (customReq) {
-        prompt += `- 사용자 개별 추가 요구사항: ${customReq}\n`;
+        prompt += `- 전체 공통 추가 요구사항: ${customReq}\n`;
     }
 
     return prompt;
@@ -466,11 +486,13 @@ function updateClassCharts() {
             const reason = issues[Math.floor(Math.random() * issues.length)];
             riskHtml += `
                 <div class="risk-item">
-                    <div class="risk-item-info">
-                        <strong>${getStudentName(row)}</strong>
+                    <div class="risk-item-info" style="flex:1;">
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">
+                            <strong>${getStudentName(row)}</strong>
+                            <button class="btn-risk-action" style="flex-shrink:0; white-space:nowrap; padding:2px 10px; font-size:0.8rem;" onclick="document.querySelector('.menu li[data-target=\\'personal-stats\\']').click(); document.getElementById('studentSelect').value = ${i}; document.getElementById('studentSelect').dispatchEvent(new Event('change'));">상세 보기</button>
+                        </div>
                         <span class="risk-item-reason">(${getStudentMeta(row)}) - ${reason}</span>
                     </div>
-                    <button class="btn-risk-action" onclick="document.querySelector('.menu li[data-target=\\'personal-stats\\']').click(); document.getElementById('studentSelect').value = ${i}; document.getElementById('studentSelect').dispatchEvent(new Event('change'));">상세 보기</button>
                 </div>
             `;
             dropdownHtml += `
@@ -611,13 +633,13 @@ studentSelect.addEventListener('change', (e) => {
     const hapAvg = getCategoryAvg('행복');
     const adaptAvg = getCategoryAvg('학교적응력');
     
-    document.getElementById('studentHappinessScore').innerText = `행복: ${hapAvg > 0 ? getStars(hapAvg) : '데이터 부족'}`;
-    document.getElementById('studentHappinessScore').style.color = hapAvg > 0 ? '#F59E0B' : 'var(--text-muted)';
+    // 행복도: 6요소 전체 합산 평균 → 5점 척도 별표 1개
+    document.getElementById('studentHappinessScore').innerHTML = `행복: <span style="color:#F59E0B;">${hapAvg > 0 ? getStars(hapAvg) : '데이터 부족'}</span>`;
     
-    document.getElementById('studentAdaptScore').innerText = `학교적응: ${adaptAvg > 0 ? getStars(adaptAvg) : '데이터 부족'}`;
-    document.getElementById('studentAdaptScore').style.color = adaptAvg > 0 ? '#10B981' : 'var(--text-muted)';
+    // 학교적응도: 전체 항목 평균 → 5점 척도 별표 1개
+    document.getElementById('studentAdaptScore').innerHTML = `학교적응: <span style="color:#10B981;">${adaptAvg > 0 ? getStars(adaptAvg) : '데이터 부족'}</span>`;
 
-    // Multi-Intelligence Top 2~3
+    // Multi-Intelligence Top 2
     let miScores = [];
     if(MAPPING_DATA['다중지능']) {
         Object.keys(MAPPING_DATA['다중지능']).forEach(sub => {
@@ -634,10 +656,10 @@ studentSelect.addEventListener('change', (e) => {
     }
     if(miScores.length > 0) {
         miScores.sort((a,b) => b.score - a.score);
-        const topMi = miScores.slice(0, 3).map(m => m.name).join(', ');
-        document.getElementById('studentMiStrengths').innerText = `강점 지능: ${topMi}`;
+        const topMi = miScores.slice(0, 2).map(m => m.name).join(', ');
+        document.getElementById('studentMiStrengths').innerHTML = `강점지능: <strong>${topMi}</strong>`;
     } else {
-        document.getElementById('studentMiStrengths').innerText = `강점 지능: 데이터 부족`;
+        document.getElementById('studentMiStrengths').innerText = `강점지능: 데이터 부족`;
     }
 
     // Reset Tabs
@@ -939,10 +961,95 @@ window.openClassConsultingChat = function() {
     
     document.getElementById('chatTitle').innerText = `학급 전체 종합 상담`;
     
-    currentChatContext = `선생님은 초등학교 교사이고, 나는 선생님을 돕는 교육 AI 컨설턴트입니다.
-현재 우리 학급에는 총 ${parsedData.length}명의 학생이 있습니다.
-선생님이 학급 경영, 수업 방향, 전체적인 분위기 조성에 대해 질문을 하실 것입니다.
-질문이 오면 친절하고 실제 교실에서 쓰일 수 있는 구체적인 팁 위주로 명확하게 답변해주세요. 첫 인사를 부탁합니다.`;
+    const totalStudents = parsedData.length;
+
+    // 성별 집계
+    let maleCount = 0, femaleCount = 0;
+    parsedData.forEach(row => {
+        const gender = row['성별'] || row['gender'] || '';
+        if(gender.includes('남')) maleCount++;
+        else if(gender.includes('여')) femaleCount++;
+    });
+    const genderStr = (maleCount + femaleCount > 0)
+        ? `남 ${maleCount}명(${Math.round(maleCount/totalStudents*100)}%), 여 ${femaleCount}명(${Math.round(femaleCount/totalStudents*100)}%)`
+        : '성별 데이터 없음';
+
+    // 학년/버전
+    let sampleRow = parsedData[0];
+    let gradeStr = String(sampleRow['학년'] || Object.values(sampleRow)[0] || "5");
+    let version = 'v3';
+    if(gradeStr.includes('1') || gradeStr.includes('2')) version = 'v1';
+    else if(gradeStr.includes('3') || gradeStr.includes('4')) version = 'v2';
+
+    let targetGradeKey = '5~6학년용';
+    if(version === 'v1') targetGradeKey = '1~2학년용';
+    else if(version === 'v2') targetGradeKey = '3~4학년용';
+    const targetSurvey = SURVEY_DATA[targetGradeKey] || [];
+
+    // 설문 구성 요약
+    let surveyOutlineStr = `\n[설문지 목적 및 구성 - ${targetGradeKey}]\n설문 목적: 행복 6요소·MBTI·다중지능·학교적응력 종합 평가\n`;
+    targetSurvey.forEach(sec => {
+        surveyOutlineStr += `[${sec.section}] `;
+        surveyOutlineStr += sec.questions.map(q => `${q.q}(${q.eval})`).join(' / ') + '\n';
+    });
+
+    // 요인별 학급 평균
+    let factorStr = '\n[요인별 학급 전체 평균 (5점 만점)]';
+    let factorScores = {}, factorCounts = {};
+    let questionDistribution = {};
+    parsedData.forEach(row => {
+        const rowVals = Object.values(row);
+        const rowKeys = Object.keys(row).filter(k => !k.startsWith('_'));
+        if(typeof MAPPING_DATA !== 'undefined') {
+            Object.keys(MAPPING_DATA).forEach(cat => {
+                if(cat==='MBTI') return;
+                Object.keys(MAPPING_DATA[cat]).forEach(sub => {
+                    const qNums = MAPPING_DATA[cat][sub][version];
+                    if(!qNums) return;
+                    qNums.forEach(qNum => {
+                        const valMatch = String(rowVals[3+qNum]).match(/\d+/);
+                        if(valMatch) {
+                            const mk = `[${cat}] ${sub}`;
+                            factorScores[mk] = (factorScores[mk] || 0) + parseInt(valMatch[0], 10);
+                            factorCounts[mk] = (factorCounts[mk] || 0) + 1;
+                        }
+                    });
+                });
+            });
+        }
+        const sKeys = rowKeys.filter(k => /^\d+\./.test(k));
+        const fKeys = sKeys.length > 0 ? sKeys : rowKeys.slice(4);
+        fKeys.forEach(key => {
+            if(!questionDistribution[key]) questionDistribution[key] = {1:0,2:0,3:0,4:0,5:0};
+            const vm = String(row[key]).match(/\d+/);
+            if(vm) { const v = parseInt(vm[0],10); if(v>=1&&v<=5) questionDistribution[key][v]++; }
+        });
+    });
+    Object.keys(factorScores).forEach(key => {
+        factorStr += `\n- ${key}: ${(factorScores[key]/factorCounts[key]).toFixed(2)}점`;
+    });
+    let distStr = '\n\n[문항별 응답 분포]';
+    Object.keys(questionDistribution).forEach(key => {
+        const d = questionDistribution[key];
+        distStr += `\n· ${key} → 1:${d[1]}명 2:${d[2]}명 3:${d[3]}명 4:${d[4]}명 5:${d[5]}명`;
+    });
+
+    // MBTI 분포
+    const mbtiTypeCounts = {E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0};
+    parsedData.forEach(row => {
+        if(row._mbti && row._mbti.length===4) row._mbti.split('').forEach(c => { if(mbtiTypeCounts[c]!==undefined) mbtiTypeCounts[c]++; });
+    });
+    let mbtiStr = '\n\n[학급 MBTI 분포]';
+    [['E','I'],['S','N'],['T','F'],['J','P']].forEach(([l,r]) => {
+        mbtiStr += `\n· ${l}:${mbtiTypeCounts[l]}명 vs ${r}:${mbtiTypeCounts[r]}명`;
+    });
+
+    currentChatContext = `당신은 초등학교 교사를 돕는 교육 AI 컨설턴트입니다. 아래는 학급 전체의 설문 데이터입니다.
+학급인원: ${totalStudents}명 / 성별: ${genderStr}${mbtiStr}${surveyOutlineStr}${factorStr}${distStr}
+
+선생님과 학급 경영, 수업 방향, 전체적인 분위기 조성 등에 대해 이 데이터를 바탕으로 깊이 있게 대화해주세요.
+친절하고 실제 교실에서 바로 쓸 수 있는 구체적인 팁 위주로 답변하되, 데이터의 수치를 자주 인용하여 근거 있는 조언을 해주세요.
+먼저 학급 전체 데이터를 간략히 분석하여 선생님께 핵심 인사이트를 드려주세요.`;
     
     initChatOverlay();
 };
@@ -951,42 +1058,61 @@ window.startClassGeminiConsulting = function() {
     if (parsedData.length === 0) return alert("데이터를 먼저 입력해주세요.");
 
     const totalStudents = parsedData.length;
-    // Calculate simple class average strengths / weaknesses based on keyword frequencies
-    const allStrengths = {};
-    const allWeaknesses = {};
     const allMbti = {};
     
     parsedData.forEach(row => {
         if(row._mbti) {
             allMbti[row._mbti] = (allMbti[row._mbti] || 0) + 1;
         }
-        if(row._strengths) {
-            row._strengths.forEach(s => { allStrengths[s] = (allStrengths[s] || 0) + 1; });
-        }
-        if(row._weaknesses) {
-            row._weaknesses.forEach(w => { allWeaknesses[w] = (allWeaknesses[w] || 0) + 1; });
-        }
     });
 
     const topMbti = Object.entries(allMbti).sort((a,b) => b[1]-a[1]).slice(0,3).map(e=>e[0]).join(', ');
-    const topStrengths = Object.entries(allStrengths).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>`${e[0]}(${e[1]}명)`).join(', ');
-    const topWeaknesses = Object.entries(allWeaknesses).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>`${e[0]}(${e[1]}명)`).join(', ');
 
-    // Extract factor averages if available in SURVEY_DATA
-    let factorStr = "";
-    let version = 'v3';
+    // 성별 집계
+    let maleCount = 0, femaleCount = 0;
+    parsedData.forEach(row => {
+        const gender = row['성별'] || row['gender'] || '';
+        if(gender.includes('남')) maleCount++;
+        else if(gender.includes('여')) femaleCount++;
+    });
+    const genderStr = (maleCount + femaleCount > 0)
+        ? `남 ${maleCount}명(${Math.round(maleCount/totalStudents*100)}%), 여 ${femaleCount}명(${Math.round(femaleCount/totalStudents*100)}%)`
+        : '성별 데이터 없음';
+
+    // 학년 추출
     let sampleRow = parsedData[0];
     let gradeStr = String(sampleRow['학년'] || Object.values(sampleRow)[0] || "5");
+    let version = 'v3';
     if(gradeStr.includes('1') || gradeStr.includes('2')) version = 'v1';
     else if(gradeStr.includes('3') || gradeStr.includes('4')) version = 'v2';
-    
-    if(typeof MAPPING_DATA !== 'undefined') {
-        factorStr += "\n[요인별 정량 통계 (5점 만점 환산 추정)]\n";
-        let factorScores = {};
-        let factorCounts = {};
-        
-        parsedData.forEach(row => {
-            const rowVals = Object.values(row);
+
+    // 설문지 - 해당 학년 섹션 및 질문 전체
+    let targetGradeKey = '5~6학년용';
+    if(version === 'v1') targetGradeKey = '1~2학년용';
+    else if(version === 'v2') targetGradeKey = '3~4학년용';
+    const targetSurvey = SURVEY_DATA[targetGradeKey] || [];
+
+    let surveyOutlineStr = `\n[설문지 목적 및 구성]\n설문지명: ${targetGradeKey} 학생 다면적 심리·학교생활 설문\n설문 목적: 학생의 행복 6요소(긍정성, 정서조절, 안정감, 관계성, 유능감, 자율성), MBTI 성격 지향, 다중지능 8영역 강점, 학교적응력(교우관계, 교사관계, 학업태도, 규칙준수)을 종합 평가하여 맞춤형 교육 지원에 활용\n\n`;
+    targetSurvey.forEach(sec => {
+        surveyOutlineStr += `[${sec.section}]\n`;
+        sec.questions.forEach(q => {
+            surveyOutlineStr += `  · ${q.q} (평가영역: ${q.eval})\n`;
+        });
+        surveyOutlineStr += '\n';
+    });
+
+    // 요인별 정량 통계 + 문항별 응답 분포
+    let factorStr = "\n[요인별 학급 평균 (5점 만점)]";
+    let factorScores = {}, factorCounts = {};
+    // 문항별 응답 분포: {문항헤더: {1:0,2:0,3:0,4:0,5:0}}
+    let questionDistribution = {};
+
+    parsedData.forEach(row => {
+        const rowVals = Object.values(row);
+        const rowKeys = Object.keys(row).filter(k => !k.startsWith('_'));
+
+        // 요인별 통계
+        if(typeof MAPPING_DATA !== 'undefined') {
             Object.keys(MAPPING_DATA).forEach(cat => {
                 if(cat==='MBTI') return;
                 Object.keys(MAPPING_DATA[cat]).forEach(sub => {
@@ -1002,30 +1128,69 @@ window.startClassGeminiConsulting = function() {
                     });
                 });
             });
+        }
+
+        // 문항별 응답 분포 수집 (첫 4개 제외한 설문항목)
+        const surveyKeys = rowKeys.filter(k => /^\d+\./.test(k));
+        const finalSurveyKeys = surveyKeys.length > 0 ? surveyKeys : rowKeys.slice(4);
+        finalSurveyKeys.forEach(key => {
+            if(!questionDistribution[key]) questionDistribution[key] = {1:0,2:0,3:0,4:0,5:0};
+            const valMatch = String(row[key]).match(/\d+/);
+            if(valMatch) {
+                const v = parseInt(valMatch[0], 10);
+                if(v >= 1 && v <= 5) questionDistribution[key][v]++;
+            }
         });
-        
-        Object.keys(factorScores).forEach(key => {
-            const avg = (factorScores[key] / factorCounts[key]).toFixed(2);
-            factorStr += `- ${key}: 평균 ${avg}점\n`;
-        });
-    }
+    });
+
+    Object.keys(factorScores).forEach(key => {
+        const avg = (factorScores[key] / factorCounts[key]).toFixed(2);
+        factorStr += `\n- ${key}: 평균 ${avg}점`;
+    });
+
+    // 문항별 응답 분포 문자열
+    let distStr = "\n\n[문항별 전체 학생 응답 분포 (1점~5점 / 해당 학생 수)]";
+    // 개수가 너무 많으면 요약
+    const distKeys = Object.keys(questionDistribution);
+    distKeys.forEach(key => {
+        const d = questionDistribution[key];
+        distStr += `\n  · ${key} → 1점:${d[1]}명 / 2점:${d[2]}명 / 3점:${d[3]}명 / 4점:${d[4]}명 / 5점:${d[5]}명`;
+    });
+
+    // MBTI 성향 분포
+    let mbtiDistStr = '\n\n[학급 MBTI 성향 분포]';
+    const mbtiDimensions = [['E','I'],['S','N'],['T','F'],['J','P']];
+    const mbtiTypeCounts = {E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0};
+    parsedData.forEach(row => {
+        if(row._mbti && row._mbti.length === 4) {
+            row._mbti.split('').forEach(c => { if(mbtiTypeCounts[c] !== undefined) mbtiTypeCounts[c]++; });
+        }
+    });
+    mbtiDimensions.forEach(([l, r]) => {
+        const lc = mbtiTypeCounts[l], rc = mbtiTypeCounts[r];
+        mbtiDistStr += `\n  · ${l}: ${lc}명(${Math.round(lc/totalStudents*100)}%) vs ${r}: ${rc}명(${Math.round(rc/totalStudents*100)}%)`;
+    });
 
     const prompt = `당신은 초등학교 학급 경영 및 학생 교육을 돕는 심층적이고 전문적인 교육 AI 컨설턴트입니다.
-다음은 제가 맡고 있는 학급(${totalStudents}명)의 다면적 심리 및 학교생활 설문 종합 데이터 상세 요약(정량적 통계 포함)입니다.
-이를 심층 분석하여, 활기차고 안정적인 학급 문화를 만들기 위해 오늘 당장 제가 학급에서 실천할 수 있는 구체적인 관리 및 지도 팁 3가지(또는 그 이상)를 제시해주세요.
+다음은 제가 맡고 있는 학급(${totalStudents}명)의 종합 설문 데이터 전체입니다.
+이를 심층 분석하여, 활기차고 안정적인 학급 문화를 만들기 위해 오늘 당장 실천할 수 있는 구체적인 관리 및 지도 팁 3가지 이상을 제시해주세요.
 
-[학급 종합 요약 정보]
+[학급 기본 정보]
 - 총 인원: ${totalStudents}명
-- 학급 내 선호 MBTI 유형 등역: ${topMbti || '데이터 부족'}
-- 학급 전체에서 두드러지는 공통 강점들 (선택 인원): ${topStrengths || '데이터 부족'}
-- 학급 전체에서 주의 깊게 살펴보고 보완해야 할 점들 (선택 인원): ${topWeaknesses || '데이터 부족'}
-${factorStr}
+- 성별: ${genderStr}
+- 학급 MBTI 선호 유형(상위): ${topMbti || '데이터 부족'}
+${mbtiDistStr}
+${surveyOutlineStr}${factorStr}${distStr}
 
-추가로, 위 요인별 문항 매핑(정량 분석) 지표 중 상대적으로 수치가 가장 낮거나 보완이 절실해 보이는 영역을 1~2가지 꼭 집어내어,
-이를 극복할 수 있는 전체 학급 차원의 협동 활동이나 조종례 시간 활용 팁을 포함해주세요.
-어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시길 바랍니다.`;
+위 모든 정보를 종합하여 아래 항목을 반드시 포함하여 작성해주세요:
+① 학급 전체의 가장 두드러진 강점 2가지와 활용 방안
+② 상대적으로 수치가 낮거나 보완이 필요한 영역 2가지와 즉각 실천 가능한 개선 전략
+③ 문항별 응답 분포에서 눈에 띄는 점(대다수가 1~2점이거나 5점에 쏠린 문항)에 대한 해석 및 지도 방향
+④ 학급 문화 형성을 위한 조종례/종례 활용 팁 1가지
 
-    openAiSiteModal(prompt, "학급 전체 요약 정보와 컨설팅 프롬프트가 복사되었습니다!");
+어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주세요.`;
+
+    openAiSiteModal(prompt, "학급 전체 종합 정보(설문질문 전체+문항별 응답 분포 포함) 컨설팅 프롬프트가 복사되었습니다!");
 };
 
 window.startGeminiConsulting = function() {
