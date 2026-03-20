@@ -122,7 +122,20 @@ function getStudentMeta(row) {
 
 function populateStudentSelect() {
     studentSelect.innerHTML = '<option value="">-- 학생을 선택하세요 --</option>';
-    parsedData.forEach((row, index) => {
+    
+    // Sort students by Grade, Class, and Number for the select dropdown
+    const sortedIndices = parsedData
+        .map((row, index) => ({ row, index }))
+        .sort((a, b) => {
+            const gA = parseInt(a.row['학년'] || 0), gB = parseInt(b.row['학년'] || 0);
+            if (gA !== gB) return gA - gB;
+            const cA = parseInt(a.row['반'] || 0), cB = parseInt(b.row['반'] || 0);
+            if (cA !== cB) return cA - cB;
+            const nA = parseInt(a.row['번호'] || 0), nB = parseInt(b.row['번호'] || 0);
+            return nA - nB;
+        });
+
+    sortedIndices.forEach(({row, index}) => {
         const name = getStudentName(row);
         const option = document.createElement('option');
         option.value = index;
@@ -257,7 +270,7 @@ window.populatePersonalHome = function() {
         
         tr.innerHTML = `
             <td style="padding: 8px;">${actionHtml}</td>
-            <td style="padding: 8px;">${index + 1}</td>
+            <td style="padding: 8px;">${num}</td>
             <td style="padding: 8px;">${grade}</td>
             <td style="padding: 8px;">${cls}</td>
             <td style="padding: 8px;">${num}</td>
@@ -522,8 +535,8 @@ function populateAiTable() {
             <td id="ai-strengths-${index}">${strengthsHtml}</td>
             <td id="ai-weaknesses-${index}">${weaknessesHtml}</td>
             <td id="ai-reqs-${index}" style="vertical-align:middle; padding:10px;">${reqsHtml}</td>
-            <td style="vertical-align:middle; text-align:center;"><button class="btn btn-outline-primary btn-sm" title="외부 AI웹 프롬프트 복사" onclick="copyManualPrompt(${index})" style="width:100%; height:36px; display:flex; justify-content:center; align-items:center;"><i class="fa-solid fa-square-arrow-up-right fa-lg"></i></button></td>
-            <td style="vertical-align:middle; text-align:center;"><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})" style="width:100%; height:36px; display:flex; justify-content:center; align-items:center;"><i class="fa-solid fa-robot fa-lg"></i></button></td>
+            <td style="vertical-align:middle; text-align:center;"><button class="btn btn-outline-primary btn-sm" title="외부 생성" onclick="copyManualPrompt(${index})" style="width:100%; height:36px; display:flex; justify-content:center; align-items:center;"><i class="fa-solid fa-square-arrow-up-right fa-lg"></i></button></td>
+            <td style="vertical-align:middle; text-align:center;"><button class="btn btn-primary btn-sm" title="자동 생성" onclick="generateAiText(${index})" style="width:100%; height:36px; display:flex; justify-content:center; align-items:center;"><i class="fa-solid fa-robot fa-lg"></i></button></td>
             <td id="ai-result-${index}" style="font-size:0.95rem; line-height:1.5; color:var(--text-muted); vertical-align:middle;">
                 [대기중] API Key 입력 후 클릭
             </td>
@@ -657,6 +670,7 @@ window.generateAiText = function(index) {
     window.callGeminiApi(promptText).then(text => {
         row._aiGenerated = text;
         resultCell.innerHTML = text.replace(/\n/g, '<br>');
+        // Show success message or visual indicator that it's saved in row._aiGenerated
     }).catch(err => {
         resultCell.innerHTML = `<span style="color:var(--text-muted);">API 요청 실패: ${err.message}</span>`;
     });
