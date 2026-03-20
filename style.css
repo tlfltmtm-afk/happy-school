@@ -572,11 +572,24 @@ tr:hover {
     color: #B45309;
     border-color: #F59E0B;
 }
-.keyword-badge:not(.active) {
+.keyword-badge:not(.active):not(.add-btn) {
     background-color: #F1F5F9;
     color: #94A3B8;
     border-color: #CBD5E1;
     text-decoration: line-through;
+}
+.keyword-badge.add-btn {
+    background-color: #fff;
+    color: #666;
+    border-color: #ccc;
+    text-decoration: none !important;
+    border-style: dashed;
+    cursor: pointer;
+}
+.keyword-badge.add-btn:hover {
+    background-color: #F1F5F9;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
 }
 .keyword-badge:hover {
     transform: translateY(-1px);

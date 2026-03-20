@@ -55,16 +55,29 @@ parseDataBtn.addEventListener('click', () => {
         const cols = rows[i].split('\t');
         if (cols.length === headers.length || cols.length > 3) {
             let rowObj = {};
-            let tdHtml = '';
             cols.forEach((col, index) => {
                 let header = headers[index] ? headers[index] : `Col${index}`;
                 rowObj[header] = col.trim();
-                tdHtml += `<td>${col.trim()}</td>`;
             });
             parsedData.push(rowObj);
-            tbodyHtml += `<tr>${tdHtml}</tr>`;
         }
     }
+
+    // Sort parsedData
+    parsedData.sort((a,b) => {
+        const gA = parseInt(a['학년']||0), gB = parseInt(b['학년']||0);
+        if(gA !== gB) return gA - gB;
+        const cA = parseInt(a['반']||0), cB = parseInt(b['반']||0);
+        if(cA !== cB) return cA - cB;
+        const nA = parseInt(a['번호']||0), nB = parseInt(b['번호']||0);
+        return nA - nB;
+    });
+
+    parsedData.forEach(row => {
+        let tdHtml = headers.map(h => `<td>${row[h]}</td>`).join('');
+        tbodyHtml += `<tr>${tdHtml}</tr>`;
+    });
+
     previewTable.querySelector('tbody').innerHTML = tbodyHtml;
     previewArea.style.display = 'block';
 
@@ -114,17 +127,82 @@ function transformWeakness(weakness) {
     return weakness;
 }
 
+// Extract numeric score from Likert scale text or numbers
+window.extractScore = function(valStr) {
+    if(!valStr) return null;
+    const str = String(valStr).trim();
+    const digitMatch = str.match(/\d+/);
+    if(digitMatch && parseInt(digitMatch[0], 10) <= 5 && parseInt(digitMatch[0], 10) >= 1) {
+        return parseInt(digitMatch[0], 10);
+    }
+    
+    if(str.includes("전혀 그렇지 않다") || str.includes("매우 그렇지 않다") || str.includes("매우 부족")) return 1;
+    if(str.includes("그렇지 않다") || str.includes("부족")) return 2;
+    if(str.includes("보통이다") || str.includes("보통")) return 3;
+    if(str.includes("매우 그렇다") || str.includes("매우 우수")) return 5;
+    if(str.includes("그렇다") || str.includes("우수")) return 4;
+
+    return null;
+}
+
+function getCategoryAvgForStudent(row, catName) {
+    if(!row || typeof MAPPING_DATA === 'undefined' || !MAPPING_DATA[catName]) return 0;
+    const rowValues = Object.values(row);
+    let studentGradeStr = String(row['학년'] || row['학년 반 번호'] || rowValues[0] || "5");
+    let version = 'v3';
+    if(studentGradeStr.includes('1') || studentGradeStr.includes('2')) version = 'v1';
+    else if(studentGradeStr.includes('3') || studentGradeStr.includes('4')) version = 'v2';
+    
+    const rowKeysAll = Object.keys(row);
+    let dsKeys = rowKeysAll.filter(k => /^\d+[\.\s]|\[\d+\]/.test(k));
+    if (dsKeys.length === 0) dsKeys = rowKeysAll.slice(4).filter(k => !k.startsWith('_'));
+
+    const OFFSETS = {
+        v1: { '행복': 0, 'MBTI': 6, '다중지능': 10, '학교적응력': 18 },
+        v2: { '행복': 0, 'MBTI': 6, '다중지능': 14, '학교적응력': 22 },
+        v3: { '행복': 0, 'MBTI': 12, '다중지능': 28, '학교적응력': 44 }
+    };
+
+    let total = 0, count = 0;
+    Object.keys(MAPPING_DATA[catName]).forEach(sub => {
+        const qNums = MAPPING_DATA[catName][sub][version];
+        if(!qNums) return;
+        qNums.forEach(q => {
+            const globalIdx = OFFSETS[version][catName] + q - 1;
+            if(globalIdx < dsKeys.length) {
+                const valStr = row[dsKeys[globalIdx]];
+                if(valStr) {
+                    const score = window.extractScore ? window.extractScore(valStr) : Number(String(valStr).replace(/[^\d]/g, ''));
+                    if(score) { total += score; count++; }
+                }
+            }
+        });
+    });
+    return count > 0 ? (total / count) : 0;
+}
+
+
 // Extract student-specific keywords from raw survey data
 function extractKeywordsForStudent(row) {
-    let grade = String(row['학년'] || Object.values(row)[0] || "O");
+    const rowValues = Object.values(row);
+    let studentGradeStr = String(row['학년'] || row['학년 반 번호'] || rowValues[0] || "");
     let version = 'v3';
-    if(grade.includes('1') || grade.includes('2')) version = 'v1';
-    else if(grade.includes('3') || grade.includes('4')) version = 'v2';
+    if(studentGradeStr.includes('1') || studentGradeStr.includes('2')) version = 'v1';
+    else if(studentGradeStr.includes('3') || studentGradeStr.includes('4')) version = 'v2';
     
     let strengthsPool = [];
     let weaknessesPool = [];
-    const rowValues = Object.values(row); 
+
+    const rowKeys = Object.keys(row);
+    let surveyKeys = rowKeys.filter(k => /^\d+[\.\s]|\[\d+\]/.test(k));
+    if(surveyKeys.length === 0) surveyKeys = rowKeys.slice(4).filter(k => !k.startsWith('_'));
     
+    const OFFSETS = {
+        v1: { '행복': 0, 'MBTI': 6, '다중지능': 10, '학교적응력': 18 },
+        v2: { '행복': 0, 'MBTI': 6, '다중지능': 14, '학교적응력': 22 },
+        v3: { '행복': 0, 'MBTI': 12, '다중지능': 28, '학교적응력': 44 }
+    };
+
     // MAPPING_DATA depends on db.js being loaded
     if(typeof MAPPING_DATA !== 'undefined' && typeof KEYWORD_BANK !== 'undefined') {
         Object.keys(MAPPING_DATA).forEach(category => {
@@ -137,12 +215,15 @@ function extractKeywordsForStudent(row) {
                 let totalScore = 0;
                 let count = 0;
                 qNums.forEach(qNum => {
-                    const valStr = rowValues[3 + qNum]; // Q1 is at index 4
-                    if(valStr) {
-                        const valMatch = String(valStr).match(/\d+/); // extract number "5" from "5. 매우 그렇다"
-                        if(valMatch) {
-                            totalScore += parseInt(valMatch[0], 10);
-                            count++;
+                    const globalIdx = OFFSETS[version][category] + qNum - 1;
+                    if(globalIdx < surveyKeys.length) {
+                        const valStr = row[surveyKeys[globalIdx]];
+                        if(valStr) {
+                            const score = extractScore(valStr);
+                            if(score !== null) {
+                                totalScore += score;
+                                count++;
+                            }
                         }
                     }
                 });
@@ -189,19 +270,32 @@ function populateAiTable() {
         const meta = getStudentMeta(row);
 
         // Dynamically extract based on real survey data instead of completely random
-        const extracted = extractKeywordsForStudent(row);
-        
-        row._strengths = extracted.strengths;
-        row._weaknesses = extracted.weaknesses.map(transformWeakness);
-        row._aiGenerated = "";
+        if(!row._strengths || !row._weaknesses) {
+            const extracted = extractKeywordsForStudent(row);
+            row._strengths = extracted.strengths;
+            row._weaknesses = extracted.weaknesses.map(transformWeakness);
+            row._aiGenerated = "";
+        }
 
         const strengthsHtml = row._strengths.map(s => 
             `<span class="keyword-badge strength active" onclick="toggleKeyword(this)">${s}</span>`
-        ).join('');
+        ).join('') + `
+        <span id="add-btn-strength-${index}" class="keyword-badge add-btn" onclick="showKeywordInput(${index}, 'strength')"><i class="fa-solid fa-plus"></i> 추가</span>
+        <span id="input-container-strength-${index}" style="display:none; align-items:center; gap:5px; margin-top:5px; vertical-align:middle;">
+            <input type="text" id="input-kw-strength-${index}" class="form-select" style="width:80px; padding:2px 5px; margin:0; font-size:0.85rem;" placeholder="입력">
+            <button class="btn btn-outline-primary btn-sm" style="padding:2px 6px; font-size:0.8rem;" onclick="submitCustomKeyword(${index}, 'strength')">확인</button>
+            <button class="btn btn-outline-secondary btn-sm" style="padding:2px 6px; font-size:0.8rem;" onclick="hideKeywordInput(${index}, 'strength')">취소</button>
+        </span>`;
         
         const weaknessesHtml = row._weaknesses.map(w => 
             `<span class="keyword-badge weakness active" onclick="toggleKeyword(this)">${w}</span>`
-        ).join('');
+        ).join('') + `
+        <span id="add-btn-weakness-${index}" class="keyword-badge add-btn" onclick="showKeywordInput(${index}, 'weakness')"><i class="fa-solid fa-plus"></i> 추가</span>
+        <span id="input-container-weakness-${index}" style="display:none; align-items:center; gap:5px; margin-top:5px; vertical-align:middle;">
+            <input type="text" id="input-kw-weakness-${index}" class="form-select" style="width:80px; padding:2px 5px; margin:0; font-size:0.85rem;" placeholder="입력">
+            <button class="btn btn-outline-primary btn-sm" style="padding:2px 6px; font-size:0.8rem;" onclick="submitCustomKeyword(${index}, 'weakness')">확인</button>
+            <button class="btn btn-outline-secondary btn-sm" style="padding:2px 6px; font-size:0.8rem;" onclick="hideKeywordInput(${index}, 'weakness')">취소</button>
+        </span>`;
 
         const tr = document.createElement('tr');
         tr.id = `ai-row-${index}`;
@@ -210,7 +304,8 @@ function populateAiTable() {
             <td><strong>${name}</strong><br><small style="color:var(--text-muted)">${meta}</small></td>
             <td id="ai-strengths-${index}">${strengthsHtml}</td>
             <td id="ai-weaknesses-${index}">${weaknessesHtml}</td>
-            <td><button class="btn btn-outline-primary btn-sm" onclick="copyManualPrompt(${index})" style="width:100%"><i class="fa-solid fa-copy"></i> 외부AI웹</button></td>
+            <td><textarea id="ai-req-${index}" class="form-select" style="width:100%; height:80px; font-size:0.85rem; padding:8px; margin:0;" placeholder="ex) 수학 집중 지도"></textarea></td>
+            <td><button class="btn btn-outline-primary btn-sm" title="외부 AI웹 프롬프트 복사" onclick="copyManualPrompt(${index})" style="padding:6px;"><i class="fa-solid fa-square-arrow-up-right fa-lg"></i></button></td>
             <td><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})"><i class="fa-solid fa-robot"></i></button></td>
             <td id="ai-result-${index}" style="font-size:0.95rem; line-height:1.5; color:var(--text-muted);">
                 [대기중] API Key 입력 후 클릭
@@ -223,6 +318,30 @@ function populateAiTable() {
 // Toggle Keyword Badge
 window.toggleKeyword = function(el) {
     el.classList.toggle('active');
+};
+
+// Inline Keyword Input logic
+window.showKeywordInput = function(index, type) {
+    document.getElementById(`add-btn-${type}-${index}`).style.display = 'none';
+    document.getElementById(`input-container-${type}-${index}`).style.display = 'inline-flex';
+    document.getElementById(`input-kw-${type}-${index}`).focus();
+};
+window.hideKeywordInput = function(index, type) {
+    document.getElementById(`add-btn-${type}-${index}`).style.display = 'inline-flex';
+    document.getElementById(`input-container-${type}-${index}`).style.display = 'none';
+    document.getElementById(`input-kw-${type}-${index}`).value = '';
+};
+window.submitCustomKeyword = function(index, type) {
+    const input = document.getElementById(`input-kw-${type}-${index}`);
+    const word = input.value.trim();
+    if(!word) return hideKeywordInput(index, type);
+    const row = parsedData[index];
+    if(type === 'strength') {
+        if(!row._strengths.includes(word)) row._strengths.push(word);
+    } else {
+        if(!row._weaknesses.includes(word)) row._weaknesses.push(word);
+    }
+    populateAiTable();
 };
 
 // Generate Manual Prompt Text
@@ -267,10 +386,15 @@ window.generateManualPromptText = function(index) {
         prompt += `- 문장 기본 분량: 약 ${basicLength}자 내외\n`;
     }
 
+    const individualReq = document.getElementById(`ai-req-${index}`)?.value.trim();
+
     prompt += `어조는 교사가 학생을 객관적이면서도 애정어린 시선으로 관찰한 긍정적 평어체로, '~함.', '~임.' 으로 끝나게 작성해줘.\n`;
 
     if (customReq) {
-        prompt += `- 사용자 개별 추가 요구사항: ${customReq}\n`;
+        prompt += `- 사용자 개별 추가 요구사항(공통): ${customReq}\n`;
+    }
+    if (individualReq) {
+        prompt += `- 해당 학생 개별 요구사항: ${individualReq}\n`;
     }
 
     return prompt;
@@ -451,7 +575,7 @@ function updateClassCharts() {
         renderBar('E', 'I') + renderBar('S', 'N') + renderBar('T', 'F') + renderBar('J', 'P');
 
 
-    // 3. High Risk Students Calculation (Demo logic: 20% chance of being high risk)
+    // 3. High Risk Students Calculation
     const riskListContainer = document.getElementById('highRiskList');
     const riskDropdownContainer = document.getElementById('riskDropdown');
     let riskHtml = '';
@@ -459,18 +583,23 @@ function updateClassCharts() {
     let riskCount = 0;
 
     parsedData.forEach((row, i) => {
-        // Mocking risk conditions based on random chance
-        if (Math.random() > 0.8) {
+        const hapAvg = getCategoryAvgForStudent(row, '행복');
+        const adaptAvg = getCategoryAvgForStudent(row, '학교적응력');
+        
+        if (hapAvg > 0 && adaptAvg > 0 && (hapAvg <= 2.5 || adaptAvg <= 2.5)) {
             riskCount++;
-            const issues = ["행복요소 전반 점수 낮음", "교우관계 문항 주의 구간", "학급 내 소외감/스트레스 수치 높음"];
-            const reason = issues[Math.floor(Math.random() * issues.length)];
+            let issues = [];
+            if (hapAvg <= 2.5) issues.push("행복 평균 2.5 이하");
+            if (adaptAvg <= 2.5) issues.push("학교적응도 평균 2.5 이하");
+            const reason = issues.join(", ");
+            
             riskHtml += `
-                <div class="risk-item">
-                    <div class="risk-item-info">
+                <div class="risk-item" style="display:flex; justify-content:flex-start; align-items:center; flex-wrap:wrap; gap:20px;">
+                    <div class="risk-item-info" style="display:flex; align-items:center; gap:10px;">
                         <strong>${getStudentName(row)}</strong>
-                        <span class="risk-item-reason">(${getStudentMeta(row)}) - ${reason}</span>
+                        <button class="btn-risk-action" onclick="document.querySelector('.menu li[data-target=\\'personal-stats\\']').click(); document.getElementById('studentSelect').value = ${i}; document.getElementById('studentSelect').dispatchEvent(new Event('change'));">상세 보기</button>
                     </div>
-                    <button class="btn-risk-action" onclick="document.querySelector('.menu li[data-target=\\'personal-stats\\']').click(); document.getElementById('studentSelect').value = ${i}; document.getElementById('studentSelect').dispatchEvent(new Event('change'));">상세 보기</button>
+                    <span class="risk-item-reason" style="color:var(--text-muted);font-size:0.95rem;">(${getStudentMeta(row)}) - ${reason}</span>
                 </div>
             `;
             dropdownHtml += `
@@ -530,6 +659,13 @@ window.toggleRiskDropdown = function() {
     }
 };
 
+window.openUsageGuideModal = function() {
+    document.getElementById('usageGuideModal').style.display = 'flex';
+};
+window.closeUsageGuideModal = function() {
+    document.getElementById('usageGuideModal').style.display = 'none';
+};
+
 window.addEventListener('click', function(event) {
     const btn = document.getElementById('btnRiskNav');
     const dropdown = document.getElementById('riskDropdown');
@@ -539,6 +675,10 @@ window.addEventListener('click', function(event) {
     const modal = document.getElementById('surveyPreviewModal');
     if (event.target === modal) {
         closeSurveyPreview();
+    }
+    const usageModal = document.getElementById('usageGuideModal');
+    if (event.target === usageModal) {
+        closeUsageGuideModal();
     }
 });
 
@@ -573,12 +713,20 @@ studentSelect.addEventListener('change', (e) => {
     document.getElementById('studentMbti').innerHTML = `MBTI: ${row._mbti}`;
 
     // Extract raw stats from survey data based on MAPPING_DATA
-    let studentGradeStr = String(row['학년'] || Object.values(row)[0] || "5");
+    let studentGradeStr = String(row['학년'] || row['학년 반 번호'] || Object.values(row)[0] || "5");
     let version = 'v3';
     if(studentGradeStr.includes('1') || studentGradeStr.includes('2')) version = 'v1';
     else if(studentGradeStr.includes('3') || studentGradeStr.includes('4')) version = 'v2';
 
-    const rowVals = Object.values(row);
+    const rowKeysAll = Object.keys(row);
+    let dsKeys = rowKeysAll.filter(k => /^\d+[\.\s]|\[\d+\]/.test(k));
+    if (dsKeys.length === 0) dsKeys = rowKeysAll.slice(4).filter(k => !k.startsWith('_'));
+
+    const OFFSETS = {
+        v1: { '행복': 0, 'MBTI': 6, '다중지능': 10, '학교적응력': 18 },
+        v2: { '행복': 0, 'MBTI': 6, '다중지능': 14, '학교적응력': 22 },
+        v3: { '행복': 0, 'MBTI': 12, '다중지능': 28, '학교적응력': 44 }
+    };
 
     // Helper: calculate average for a category
     function getCategoryAvg(catName) {
@@ -588,12 +736,36 @@ studentSelect.addEventListener('change', (e) => {
             const qNums = MAPPING_DATA[catName][sub][version];
             if(!qNums) return;
             qNums.forEach(q => {
-                const valMatch = String(rowVals[3+q]).match(/\d+/);
-                if(valMatch) {
-                    total += parseInt(valMatch[0], 10);
-                    count++;
+                const globalIdx = OFFSETS[version][catName] + q - 1;
+                if(globalIdx < dsKeys.length) {
+                    const valStr = row[dsKeys[globalIdx]];
+                    if(valStr) {
+                        const score = extractScore(valStr);
+                        if(score !== null) {
+                            total += score;
+                            count++;
+                        }
+                    }
                 }
             });
+        });
+        return count > 0 ? (total / count) : 0;
+    }
+
+    function getSubCategoryAvg(catName, subName) {
+        if(!MAPPING_DATA[catName] || !MAPPING_DATA[catName][subName]) return 0;
+        const qNums = MAPPING_DATA[catName][subName][version];
+        if(!qNums) return 0;
+        let total = 0, count = 0;
+        qNums.forEach(q => {
+            const globalIdx = OFFSETS[version][catName] + q - 1;
+            if(globalIdx < dsKeys.length) {
+                const valStr = row[dsKeys[globalIdx]];
+                if(valStr) {
+                    const score = extractScore(valStr);
+                    if(score !== null) { total += score; count++; }
+                }
+            }
         });
         return count > 0 ? (total / count) : 0;
     }
@@ -611,11 +783,9 @@ studentSelect.addEventListener('change', (e) => {
     const hapAvg = getCategoryAvg('행복');
     const adaptAvg = getCategoryAvg('학교적응력');
     
-    document.getElementById('studentHappinessScore').innerText = `행복: ${hapAvg > 0 ? getStars(hapAvg) : '데이터 부족'}`;
-    document.getElementById('studentHappinessScore').style.color = hapAvg > 0 ? '#F59E0B' : 'var(--text-muted)';
+    document.getElementById('studentHappinessScore').innerHTML = `행복: <span style="color:#FFD700; text-shadow:1px 1px 2px rgba(0,0,0,0.2);">${hapAvg > 0 ? getStars(hapAvg) : '데이터 부족'}</span>`;
     
-    document.getElementById('studentAdaptScore').innerText = `학교적응: ${adaptAvg > 0 ? getStars(adaptAvg) : '데이터 부족'}`;
-    document.getElementById('studentAdaptScore').style.color = adaptAvg > 0 ? '#10B981' : 'var(--text-muted)';
+    document.getElementById('studentAdaptScore').innerHTML = `학교적응: <span style="color:#A7F3D0; text-shadow:1px 1px 2px rgba(0,0,0,0.2);">${adaptAvg > 0 ? getStars(adaptAvg) : '데이터 부족'}</span>`;
 
     // Multi-Intelligence Top 2~3
     let miScores = [];
@@ -625,8 +795,14 @@ studentSelect.addEventListener('change', (e) => {
             const qNums = MAPPING_DATA['다중지능'][sub][version];
             if(qNums) {
                 qNums.forEach(q => {
-                    const match = String(rowVals[3+q]).match(/\d+/);
-                    if(match) { sum += parseInt(match[0], 10); c++; }
+                    const globalIdx = OFFSETS[version]['다중지능'] + q - 1;
+                    if(globalIdx < dsKeys.length) {
+                        const valStr = row[dsKeys[globalIdx]];
+                        if(valStr) {
+                            const score = extractScore(valStr);
+                            if(score !== null) { sum += score; c++; }
+                        }
+                    }
                 });
             }
             if(c>0) miScores.push({name: sub, score: sum/c});
@@ -634,7 +810,7 @@ studentSelect.addEventListener('change', (e) => {
     }
     if(miScores.length > 0) {
         miScores.sort((a,b) => b.score - a.score);
-        const topMi = miScores.slice(0, 3).map(m => m.name).join(', ');
+        const topMi = miScores.slice(0, 2).map(m => m.name).join(', ');
         document.getElementById('studentMiStrengths').innerText = `강점 지능: ${topMi}`;
     } else {
         document.getElementById('studentMiStrengths').innerText = `강점 지능: 데이터 부족`;
@@ -646,15 +822,18 @@ studentSelect.addEventListener('change', (e) => {
     profileCard.style.display = 'block';
 
     // 1. Happiness Chart
+    const hapLabels = ['긍정성', '정서조절', '안정감', '관계성', '유능감', '자율성'];
+    const hapData = hapLabels.map(l => getSubCategoryAvg('행복', l));
+    
     const ctxRadar = document.getElementById('studentRadarChart').getContext('2d');
     if(classCharts.studentRadar) classCharts.studentRadar.destroy();
     classCharts.studentRadar = new Chart(ctxRadar, {
         type: 'radar',
         data: {
-            labels: ['긍정성', '정서조절', '안정감', '관계성', '유능감', '자율성'],
+            labels: hapLabels,
             datasets: [{
                 label: '개별 행복 점수',
-                data: Array.from({length:6}, () => 2.5 + Math.random()*2.5),
+                data: hapData,
                 backgroundColor: 'rgba(244, 196, 118, 0.3)',
                 borderColor: '#F4C476',
                 pointBackgroundColor: '#F4C476',
@@ -696,15 +875,17 @@ studentSelect.addEventListener('change', (e) => {
     `;
 
     // 3. MI Chart
+    const miLabels = ['언어', '논리수학', '공간', '신체운동', '음악', '대인관계', '자기성찰', '자연친화'];
+    const miChartData = miLabels.map(l => getSubCategoryAvg('다중지능', l));
     const ctxMi = document.getElementById('studentMiChart').getContext('2d');
     if(classCharts.studentMi) classCharts.studentMi.destroy();
     classCharts.studentMi = new Chart(ctxMi, {
         type: 'radar',
         data: {
-            labels: ['언어', '논리수학', '공간', '신체운동', '음악', '대인관계', '자기성찰', '자연친화'],
+            labels: miLabels,
             datasets: [{
                 label: '학생 다중지능 프로파일',
-                data: Array.from({length:8}, () => 2.5 + Math.random()*2.5),
+                data: miChartData,
                 backgroundColor: 'rgba(155, 134, 219, 0.3)',
                 borderColor: '#9B86DB',
                 pointBackgroundColor: '#9B86DB',
@@ -718,15 +899,17 @@ studentSelect.addEventListener('change', (e) => {
     });
 
     // 4. Adapt Chart
+    const adaptLabels = ['교우관계', '교사관계', '학업태도', '규칙준수'];
+    const adaptChartData = adaptLabels.map(l => getSubCategoryAvg('학교적응력', l));
     const ctxAdapt = document.getElementById('studentAdaptChart').getContext('2d');
     if(classCharts.studentAdapt) classCharts.studentAdapt.destroy();
     classCharts.studentAdapt = new Chart(ctxAdapt, {
         type: 'bar',
         data: {
-            labels: ['교우관계', '교사관계', '학업태도', '규칙준수'],
+            labels: adaptLabels,
             datasets: [{
                 label: '항목별 적응 수준',
-                data: Array.from({length:4}, () => 2.5 + Math.random()*2.5),
+                data: adaptChartData,
                 backgroundColor: '#92B4F2',
                 borderRadius: 4
             }]
@@ -955,8 +1138,18 @@ window.startClassGeminiConsulting = function() {
     const allStrengths = {};
     const allWeaknesses = {};
     const allMbti = {};
+    const genderDist = { '남': 0, '여': 0 };
+    const distData = {};
     
     parsedData.forEach(row => {
+        // Gender logic
+        const gKeys = Object.keys(row).filter(k => k.includes('성별') || k.includes('남녀'));
+        if(gKeys.length > 0) {
+            const gVal = row[gKeys[0]].toString();
+            if(gVal.includes('남') || gVal.includes('M')) genderDist['남']++;
+            else if(gVal.includes('여') || gVal.includes('F')) genderDist['여']++;
+        }
+
         if(row._mbti) {
             allMbti[row._mbti] = (allMbti[row._mbti] || 0) + 1;
         }
@@ -966,11 +1159,34 @@ window.startClassGeminiConsulting = function() {
         if(row._weaknesses) {
             row._weaknesses.forEach(w => { allWeaknesses[w] = (allWeaknesses[w] || 0) + 1; });
         }
+
+        // Calculate distribution
+        const rowKeys = Object.keys(row).filter(k => /^\d+\./.test(k));
+        const surveyKeys = rowKeys.length > 0 ? rowKeys : Object.keys(row).slice(4);
+        surveyKeys.forEach(k => {
+            if(!distData[k]) distData[k] = { "1":0, "2":0, "3":0, "4":0, "5":0 };
+            const m = String(row[k]).match(/\d+/);
+            if(m && distData[k][m[0]] !== undefined) {
+                distData[k][m[0]]++;
+            }
+        });
     });
 
     const topMbti = Object.entries(allMbti).sort((a,b) => b[1]-a[1]).slice(0,3).map(e=>e[0]).join(', ');
     const topStrengths = Object.entries(allStrengths).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>`${e[0]}(${e[1]}명)`).join(', ');
     const topWeaknesses = Object.entries(allWeaknesses).sort((a,b) => b[1]-a[1]).slice(0,5).map(e=>`${e[0]}(${e[1]}명)`).join(', ');
+
+    let genderStr = "";
+    const totalG = genderDist['남'] + genderDist['여'];
+    if(totalG > 0) {
+        genderStr = `\n- 성별 분포: 남 ${genderDist['남']}명 (${Math.round(genderDist['남']/totalG*100)}%), 여 ${genderDist['여']}명 (${Math.round(genderDist['여']/totalG*100)}%)`;
+    }
+
+    let distStr = "\n[설문 문항별 학생 응답 분포 (1~5점 척도)]\n";
+    Object.keys(distData).forEach(k => {
+        const d = distData[k];
+        distStr += `- ${k} => (1점:${d["1"]}명, 2점:${d["2"]}명, 3점:${d["3"]}명, 4점:${d["4"]}명, 5점:${d["5"]}명)\n`;
+    });
 
     // Extract factor averages if available in SURVEY_DATA
     let factorStr = "";
@@ -1015,11 +1231,12 @@ window.startClassGeminiConsulting = function() {
 이를 심층 분석하여, 활기차고 안정적인 학급 문화를 만들기 위해 오늘 당장 제가 학급에서 실천할 수 있는 구체적인 관리 및 지도 팁 3가지(또는 그 이상)를 제시해주세요.
 
 [학급 종합 요약 정보]
-- 총 인원: ${totalStudents}명
+- 총 인원: ${totalStudents}명${genderStr}
 - 학급 내 선호 MBTI 유형 등역: ${topMbti || '데이터 부족'}
 - 학급 전체에서 두드러지는 공통 강점들 (선택 인원): ${topStrengths || '데이터 부족'}
 - 학급 전체에서 주의 깊게 살펴보고 보완해야 할 점들 (선택 인원): ${topWeaknesses || '데이터 부족'}
 ${factorStr}
+${distStr}
 
 추가로, 위 요인별 문항 매핑(정량 분석) 지표 중 상대적으로 수치가 가장 낮거나 보완이 절실해 보이는 영역을 1~2가지 꼭 집어내어,
 이를 극복할 수 있는 전체 학급 차원의 협동 활동이나 조종례 시간 활용 팁을 포함해주세요.
@@ -1076,7 +1293,14 @@ window.startGeminiConsulting = function() {
 [설문 응답 상세 내역 요약]
 ${surveyResponses}
 
-어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시고, 위 응답 내역에 기반하여 실제 학급에서 오늘 당장 적용할 수 있는 구체적이고 실질적인 교사의 지도 팁을 3가지 이상 상세히 포함해주세요. 특히 설문에 드러난 긍정/부정적 요소를 어떻게 활용하고 보완할지에 초점을 맞춰주세요.`;
+어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시고, 위 응답 내역에 기반하여 실제 학급에서 오늘 당장 적용할 수 있는 구체적이고 실질적인 교사의 지도 팁을 3가지 이상 상세히 포함해주세요. 특히 설문에 드러난 긍정/부정적 요소를 어떻게 활용하고 보완할지에 초점을 맞춰주세요.
+
+또한 첫 번째 답변의 마지막 부분에는 반드시 "추가 안내 및 활용법 제안 목록"을 제공하여, 교사가 이어서 질문이나 작업을 요청할 수 있도록 돕는 예시를 들어주세요.
+- 예시 1: [이 학생의 다중지능 강점과 MBTI를 바탕으로 가장 효과적인 수학 학습법 추천]
+- 예시 2: [관계성 점수가 낮게 나왔는데 교실에서 친구들과 어울릴 수 있는 교우관계 향상 방안 제안] 
+- 예시 3: [강점 키워드에 따른 진로 전략 제안]
+- 예시 4: [부모님께 부드럽게 전달할 수 있는 학부모 상담 기초자료 작성]
+- 예시 5: [학기말 이 학생의 성장을 격려하고 칭찬하는 5줄 이내의 편지 작성]`;
 
     openAiSiteModal(prompt, `[${name}] 학생의 정보와 컨설팅 프롬프트가 복사되었습니다!`);
 };
@@ -1407,7 +1631,7 @@ window.downloadAiResults = function() {
     if(parsedData.length === 0) return alert("데이터가 없습니다.");
     
     let csvContent = "\uFEFF"; // BOM for Excel UTF-8
-    csvContent += "No,학생 이름,정보,선택된 강점 키워드,선택된 보완 키워드,AI 자동생성 결과\n";
+    csvContent += "No,학생 이름,정보,선택된 강점 키워드,선택된 보완 키워드,개별요구사항,AI 자동생성 결과\n";
     
     parsedData.forEach((row, index) => {
         const name = getStudentName(row);
@@ -1418,6 +1642,9 @@ window.downloadAiResults = function() {
         const activeStrengths = Array.from(strengthNodes).map(n => n.innerText).join(', ');
         const activeWeaknesses = Array.from(weaknessNodes).map(n => n.innerText).join(', ');
         
+        const individualReq = document.getElementById(`ai-req-${index}`)?.value.trim() || "";
+        const reqStr = individualReq.replace(/"/g, '""');
+
         const aiResult = row._aiGenerated ? row._aiGenerated.replace(/"/g, '""') : "미생성";
         
         const csvRow = [
@@ -1426,6 +1653,7 @@ window.downloadAiResults = function() {
             `"${meta}"`,
             `"${activeStrengths}"`,
             `"${activeWeaknesses}"`,
+            `"${reqStr}"`,
             `"${aiResult}"`
         ];
         csvContent += csvRow.join(",") + "\n";
@@ -1615,10 +1843,19 @@ window.importData = function(event) {
             }
 
             // Re-render Views
-            renderPreviewTable();
-            renderClassConsulting();
-            initStudentSelect();
-            renderAiDataTable();
+            if(parsedData.length > 0) {
+                const headers = Object.keys(parsedData[0]);
+                previewTable.querySelector('thead').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+                let tbodyHtml = '';
+                parsedData.forEach(row => {
+                    let tdHtml = headers.map(h => `<td>${row[h] || ''}</td>`).join('');
+                    tbodyHtml += `<tr>${tdHtml}</tr>`;
+                });
+                previewTable.querySelector('tbody').innerHTML = tbodyHtml;
+            }
+            populateStudentSelect();
+            populateAiTable();
+            if(typeof updateClassCharts === 'function') updateClassCharts();
             
             document.querySelector('.preview-area').style.display = 'block';
             alert("백업 데이터를 성공적으로 불러왔습니다!");
