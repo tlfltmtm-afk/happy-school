@@ -649,14 +649,15 @@ tr:hover {
 .mbti-bar-wrapper {
     flex: 1;
     display: flex;
-    height: 28px;
+    height: 48px; /* Thicker bar */
     background-color: var(--border-color);
-    border-radius: 14px;
+    border-radius: 24px;
     overflow: hidden;
 }
 
 .mbti-segment {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     font-size: 0.85rem;
@@ -665,7 +666,15 @@ tr:hover {
     transition: width 0.6s ease;
     white-space: nowrap;
     overflow: hidden;
-    cursor: help;
+}
+
+.mbti-segment span {
+    font-size: 0.75rem;
+    font-weight: 400;
+    opacity: 0.9;
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mbti-segment.left-side {
@@ -695,6 +704,90 @@ tr:hover {
 }
 .mbti-custom-tooltip.show {
     opacity: 1;
+}
+
+/* MI Full Screen Modal */
+.mi-fullscreen-modal {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85);
+    z-index: 10002;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.mi-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #fff;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    margin-bottom: 20px;
+}
+.mi-modal-header h2 { font-size: 1.8rem; margin: 0; }
+.mi-modal-close {
+    background: none; border: none; font-size: 2rem; color: #fff; cursor: pointer;
+}
+.mi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 15px;
+    flex: 1;
+    overflow-y: auto;
+}
+.mi-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+.mi-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border-color);
+}
+.mi-icon {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    color: #fff;
+}
+.mi-card-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--text-main);
+}
+.mi-students-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-content: flex-start;
+}
+.mi-student-badge {
+    background: #F1F5F9;
+    color: var(--text-main);
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid #CBD5E1;
+}
+@media (max-width: 1024px) {
+    .mi-grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); }
+}
+@media (max-width: 600px) {
+    .mi-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
 }
 
 /* Chat Overlay Interface (Center Modal Style) */

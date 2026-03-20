@@ -27,6 +27,15 @@ menuItems.forEach(item => {
         // Trigger updates if necessary
         if(targetId === 'class-stats' && parsedData.length > 0) {
             updateClassCharts();
+        } else if (targetId === 'personal-stats') {
+            if (document.getElementById('studentSelect').value === "") {
+                if (parsedData.length > 0) {
+                    showPersonalHome();
+                } else {
+                    document.getElementById('personalHomeContainer').style.display = 'none';
+                    document.getElementById('studentProfile').style.display = 'none';
+                }
+            }
         }
     });
 });
@@ -83,6 +92,8 @@ parseDataBtn.addEventListener('click', () => {
 
     // Populate Select & AI Table
     populateStudentSelect();
+    populatePersonalHome();
+    if(document.getElementById('personal-stats').classList.contains('active')) showPersonalHome();
     populateAiTable();
     alert(`성공적으로 ${parsedData.length}명의 데이터를 파싱했습니다.`);
 });
@@ -113,6 +124,172 @@ function populateStudentSelect() {
         studentSelect.appendChild(option);
     });
 }
+
+// ---------------- Task 1 Additions START ----------------
+window.showPersonalHome = function() {
+    document.getElementById('studentSelect').value = "";
+    document.getElementById('studentProfile').style.display = 'none';
+    const container = document.getElementById('personalHomeContainer');
+    if(container) {
+        container.style.display = 'block';
+        populatePersonalHome();
+    }
+};
+
+window.populatePersonalHome = function() {
+    const tbody = document.querySelector('#personalHomeTable tbody');
+    if(!tbody) return;
+    
+    if(parsedData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="empty-state">학생 데이터가 없습니다. 먼저 데이터를 파싱해주세요.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = '';
+    
+    // Sort array simply by default if needed, currently parsedData is already sorted by Gr/Cl/Num.
+    parsedData.forEach((row, index) => {
+        const grade = row['학년'] || "?";
+        const cls = row['반'] || "?";
+        const num = row['번호'] || "?";
+        const name = getStudentName(row);
+        
+        // Find gender
+        let gender = "-";
+        const gKeys = Object.keys(row).filter(k => k.includes('성별') || k.includes('남녀'));
+        if(gKeys.length > 0) {
+            gender = row[gKeys[0]];
+        }
+        
+        // Ensure MBTI
+        if(!row._mbti) {
+            const mbtiArr = ["ENTP", "ISFJ", "ENFP", "ISTJ", "ESTP", "INFP", "ESFJ", "INTJ", "ENTJ", "ISFP", "ENFJ", "ISTP", "ESTJ", "INTP", "ESFP", "INFJ"];
+            row._mbti = mbtiArr[Math.floor(Math.random() * mbtiArr.length)];
+        }
+        const mbti = row._mbti;
+
+        // Determine Version for offsets
+        let studentGradeStr = String(row['학년'] || row['학년 반 번호'] || Object.values(row)[0] || "5");
+        let version = 'v3';
+        if(studentGradeStr.includes('1') || studentGradeStr.includes('2')) version = 'v1';
+        else if(studentGradeStr.includes('3') || studentGradeStr.includes('4')) version = 'v2';
+
+        const rowKeysAll = Object.keys(row);
+        let dsKeys = rowKeysAll.filter(k => /^\\d+[\\.\\s]|\\[\\d+\\]/.test(k));
+        if (dsKeys.length === 0) dsKeys = rowKeysAll.slice(4).filter(k => !k.startsWith('_'));
+
+        const OFFSETS = {
+            v1: { '행복': 0, 'MBTI': 6, '다중지능': 10, '학교적응력': 18 },
+            v2: { '행복': 0, 'MBTI': 6, '다중지능': 14, '학교적응력': 22 },
+            v3: { '행복': 0, 'MBTI': 12, '다중지능': 28, '학교적응력': 44 }
+        };
+
+        // Helper: Get stars string
+        function getStars(score) {
+            const full = Math.round(score);
+            let starStr = "";
+            for(let i=0; i<5; i++) {
+                starStr += (i < full) ? "★" : "☆";
+            }
+            return starStr;
+        }
+
+        const hapAvg = getCategoryAvgForStudent(row, '행복');
+        const adaptAvg = getCategoryAvgForStudent(row, '학교적응력');
+        const hapStars = hapAvg > 0 ? `<span style="color:#F59E0B">${getStars(hapAvg)}</span>` : '<span style="color:#ccc">-</span>';
+        const adaptStars = adaptAvg > 0 ? `<span style="color:#10B981">${getStars(adaptAvg)}</span>` : '<span style="color:#ccc">-</span>';
+
+        // Calculate MI Top 2
+        let miScores = [];
+        if(typeof MAPPING_DATA !== 'undefined' && MAPPING_DATA['다중지능']) {
+            Object.keys(MAPPING_DATA['다중지능']).forEach(sub => {
+                let sum = 0, c = 0;
+                const qNums = MAPPING_DATA['다중지능'][sub][version];
+                if(qNums) {
+                    qNums.forEach(q => {
+                        const globalIdx = OFFSETS[version]['다중지능'] + q - 1;
+                        if(globalIdx < dsKeys.length) {
+                            const valStr = row[dsKeys[globalIdx]];
+                            if(valStr) {
+                                const score = typeof extractScore === 'function' ? extractScore(valStr) : Number(String(valStr).replace(/[^\\d]/g, ''));
+                                if(score) { sum += score; c++; }
+                            }
+                        }
+                    });
+                }
+                if(c>0) miScores.push({name: sub, score: sum/c});
+            });
+        }
+        let topMiStr = "-";
+        if(miScores.length > 0) {
+            miScores.sort((a,b) => b.score - a.score);
+            topMiStr = miScores.slice(0, 2).map(m => `<span class="badge" style="background:#EBF8FF; color:#0284C7; border:1px solid #BAE6FD; padding:2px 6px; font-size:0.8rem; margin-right:4px;">${m.name}</span>`).join('');
+        }
+        
+        const moveBtn = `<button class="btn btn-outline-primary btn-sm" onclick="selectStudentFromHome(${index})" style="padding: 4px 8px; font-size: 0.8rem;">분석 이동</button>`;
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="padding: 8px;">${moveBtn}</td>
+            <td style="padding: 8px;">${index + 1}</td>
+            <td style="padding: 8px;">${grade}</td>
+            <td style="padding: 8px;">${cls}</td>
+            <td style="padding: 8px;">${num}</td>
+            <td style="padding: 8px; font-weight: 600;">${name}</td>
+            <td style="padding: 8px;">${gender}</td>
+            <td style="padding: 8px; font-weight: 600; color: #854D0E;">${mbti}</td>
+            <td style="padding: 8px;">${topMiStr}</td>
+            <td style="padding: 8px;" data-score="${hapAvg}">${hapStars}</td>
+            <td style="padding: 8px;" data-score="${adaptAvg}">${adaptStars}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+};
+
+window.selectStudentFromHome = function(index) {
+    const selector = document.getElementById('studentSelect');
+    if(selector) {
+        selector.value = index;
+        selector.dispatchEvent(new Event('change'));
+    }
+};
+
+let currentSortCol = -1;
+let currentSortAsc = true;
+window.sortTable = function(columnIndex) {
+    const table = document.getElementById("personalHomeTable");
+    const tbody = table.tBodies[0];
+    const rows = Array.from(tbody.rows);
+    if(rows.length === 0 || rows[0].cells.length === 1) return; // Empty state
+    
+    if(currentSortCol === columnIndex) {
+        currentSortAsc = !currentSortAsc;
+    } else {
+        currentSortCol = columnIndex;
+        currentSortAsc = true;
+    }
+    
+    rows.sort((a, b) => {
+        let valA = a.cells[columnIndex].innerText.trim();
+        let valB = b.cells[columnIndex].innerText.trim();
+        
+        // For stars/scores, parse the data attribute
+        if(columnIndex === 9 || columnIndex === 10) {
+            valA = parseFloat(a.cells[columnIndex].getAttribute('data-score')) || 0;
+            valB = parseFloat(b.cells[columnIndex].getAttribute('data-score')) || 0;
+        } else if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB)) && (columnIndex >= 1 && columnIndex <= 4)) {
+            valA = parseFloat(valA);
+            valB = parseFloat(valB);
+        }
+        
+        if (valA < valB) return currentSortAsc ? -1 : 1;
+        if (valA > valB) return currentSortAsc ? 1 : -1;
+        return 0;
+    });
+    
+    rows.forEach(row => tbody.appendChild(row));
+};
+// ---------------- Task 1 Additions END ----------------
 
 function getRandomItems(arr, count) {
     const shuffled = [...arr].sort(() => 0.5 - Math.random());
@@ -575,12 +752,19 @@ function updateClassCharts() {
         const lTitle = mbtiNames[left].join(', ');
         const rTitle = mbtiNames[right].join(', ');
 
+        // removed tooltip hover events and added inline text
         return `
         <div class="mbti-row">
             <span class="mbti-label">${left}</span>
             <div class="mbti-bar-wrapper">
-                <div class="mbti-segment left-side" style="width: ${lPct}%" data-tooltip="${lTitle}" onmouseenter="showMbtiTooltip(event)" onmouseleave="hideMbtiTooltip()">${lCount}명 (${lPct}%)</div>
-                <div class="mbti-segment right-side" style="width: ${rPct}%" data-tooltip="${rTitle}" onmouseenter="showMbtiTooltip(event)" onmouseleave="hideMbtiTooltip()">${rCount}명 (${rPct}%)</div>
+                <div class="mbti-segment left-side" style="width: ${lPct}%">
+                    <div>${lCount}명 (${lPct}%)</div>
+                    <span>${lTitle}</span>
+                </div>
+                <div class="mbti-segment right-side" style="width: ${rPct}%">
+                    <div>${rCount}명 (${rPct}%)</div>
+                    <span>${rTitle}</span>
+                </div>
             </div>
             <span class="mbti-label">${right}</span>
         </div>`;
@@ -590,9 +774,42 @@ function updateClassCharts() {
         renderBar('E', 'I') + renderBar('S', 'N') + renderBar('T', 'F') + renderBar('J', 'P');
 
 
-    // 3. High Risk Students Calculation
+    // 3. High Risk Students Calculation (Extracted to separate function for dynamic update)
+    renderHighRiskList();
+}
+
+// Separate function to allow dynamic updating via sliders
+window.renderHighRiskList = function() {
     const riskListContainer = document.getElementById('highRiskList');
     const riskDropdownContainer = document.getElementById('riskDropdown');
+    const btnRiskNav = document.getElementById('btnRiskNav');
+    
+    if(!riskListContainer || !riskDropdownContainer || parsedData.length === 0) return;
+
+    // Get slider values (default 20%)
+    const hapRiskPct = parseInt(document.getElementById('hapRiskSlider')?.value || "20", 10);
+    const adaptRiskPct = parseInt(document.getElementById('adaptRiskSlider')?.value || "20", 10);
+    
+    // Calculate cutoff scores based on percentile
+    let hapScores = [];
+    let adaptScores = [];
+    
+    parsedData.forEach(row => {
+        const h = getCategoryAvgForStudent(row, '행복');
+        const a = getCategoryAvgForStudent(row, '학교적응력');
+        if(h > 0) hapScores.push(h);
+        if(a > 0) adaptScores.push(a);
+    });
+    
+    hapScores.sort((a,b) => a - b);
+    adaptScores.sort((a,b) => a - b);
+    
+    const hapCutoffIdx = Math.max(0, Math.floor(hapScores.length * (hapRiskPct / 100)) - 1);
+    const adaptCutoffIdx = Math.max(0, Math.floor(adaptScores.length * (adaptRiskPct / 100)) - 1);
+    
+    const hapCutoff = hapScores.length > 0 ? hapScores[hapCutoffIdx] : 0;
+    const adaptCutoff = adaptScores.length > 0 ? adaptScores[adaptCutoffIdx] : 0;
+
     let riskHtml = '';
     let dropdownHtml = '';
     let riskCount = 0;
@@ -601,20 +818,26 @@ function updateClassCharts() {
         const hapAvg = getCategoryAvgForStudent(row, '행복');
         const adaptAvg = getCategoryAvgForStudent(row, '학교적응력');
         
-        if (hapAvg > 0 && adaptAvg > 0 && (hapAvg <= 2.5 || adaptAvg <= 2.5)) {
+        let issues = [];
+        // Condition: has score AND score <= cutoff AND cutoff is valid (not 0% filter)
+        if (hapAvg > 0 && hapRiskPct > 0 && hapAvg <= hapCutoff) {
+            issues.push(`행복 하위 ${hapRiskPct}% (${hapAvg.toFixed(2)})`);
+        }
+        if (adaptAvg > 0 && adaptRiskPct > 0 && adaptAvg <= adaptCutoff) {
+            issues.push(`학교적응 하위 ${adaptRiskPct}% (${adaptAvg.toFixed(2)})`);
+        }
+        
+        if (issues.length > 0) {
             riskCount++;
-            let issues = [];
-            if (hapAvg <= 2.5) issues.push("행복 평균 2.5 이하");
-            if (adaptAvg <= 2.5) issues.push("학교적응도 평균 2.5 이하");
             const reason = issues.join(", ");
             
             riskHtml += `
-                <div class="risk-item" style="display:flex; justify-content:flex-start; align-items:center; flex-wrap:wrap; gap:20px;">
+                <div class="risk-item" style="display:flex; justify-content:flex-start; align-items:center; flex-wrap:wrap; gap:20px; padding:10px; border-bottom:1px solid #eee;">
                     <div class="risk-item-info" style="display:flex; align-items:center; gap:10px;">
                         <strong>${getStudentName(row)}</strong>
-                        <button class="btn-risk-action" onclick="document.querySelector('.menu li[data-target=\\'personal-stats\\']').click(); document.getElementById('studentSelect').value = ${i}; document.getElementById('studentSelect').dispatchEvent(new Event('change'));">상세 보기</button>
+                        <button class="btn-risk-action btn btn-outline-danger btn-sm" style="padding:4px 8px; font-size:0.8rem;" onclick="document.querySelector('.menu li[data-target=\\'personal-stats\\']').click(); document.getElementById('studentSelect').value = ${i}; document.getElementById('studentSelect').dispatchEvent(new Event('change'));">상세 보기</button>
                     </div>
-                    <span class="risk-item-reason" style="color:var(--text-muted);font-size:0.95rem;">(${getStudentMeta(row)}) - ${reason}</span>
+                    <span class="risk-item-reason" style="color:var(--text-muted);font-size:0.95rem;">(${getStudentMeta(row)}) - <span style="color:#E53E3E;">${reason}</span></span>
                 </div>
             `;
             dropdownHtml += `
@@ -627,16 +850,17 @@ function updateClassCharts() {
     });
 
     if(riskCount === 0) {
-        riskHtml = `<div style="color:var(--success); font-weight:600; padding:15px; background:#F0FFF4; border-radius:8px;"><i class="fa-solid fa-check-circle"></i> 전문가 기준 관심 필요 대상 학생이 발견되지 않았습니다.</div>`;
+        riskHtml = `<div style="color:var(--success); font-weight:600; padding:15px; background:#F0FFF4; border-radius:8px;"><i class="fa-solid fa-check-circle"></i> 설정한 기준에 해당하는 요주의 학생이 없습니다.</div>`;
         dropdownHtml = `<div style="padding:15px; text-align:center; color:var(--text-muted);">요주의 학생이 없습니다.</div>`;
     }
     
     riskListContainer.innerHTML = riskHtml;
     riskDropdownContainer.innerHTML = dropdownHtml;
 
-    const btnRiskNav = document.getElementById('btnRiskNav');
-    btnRiskNav.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 요주의 학생목록 (${riskCount}명) <i class="fa-solid fa-caret-down"></i>`;
-}
+    if(btnRiskNav) {
+        btnRiskNav.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 요주의 학생목록 (${riskCount}명) <i class="fa-solid fa-caret-down"></i>`;
+    }
+};
 
 // MBTI Custom Tooltip Logic
 let mbtiTooltipEl = null;
@@ -667,10 +891,36 @@ window.hideMbtiTooltip = function() {
 // Risk Dropdown UI
 window.toggleRiskDropdown = function() {
     const dropdown = document.getElementById('riskDropdown');
+    const settings = document.getElementById('riskSettingsPanel');
+    if(settings) settings.style.display = 'none'; // Close settings if open
     if (dropdown.style.display === 'none') {
         dropdown.style.display = 'block';
     } else {
         dropdown.style.display = 'none';
+    }
+};
+
+window.toggleRiskSettings = function() {
+    const settings = document.getElementById('riskSettingsPanel');
+    const dropdown = document.getElementById('riskDropdown');
+    if(dropdown) dropdown.style.display = 'none'; // Close dropdown if open
+    
+    if (settings.style.display === 'none') {
+        settings.style.display = 'block';
+    } else {
+        settings.style.display = 'none';
+    }
+};
+
+window.updateRiskSettings = function() {
+    const hapVal = document.getElementById('hapRiskSlider').value;
+    const adaptVal = document.getElementById('adaptRiskSlider').value;
+    document.getElementById('hapRiskLabel').innerText = hapVal + '%';
+    document.getElementById('adaptRiskLabel').innerText = adaptVal + '%';
+    
+    // Recalculate and re-render the list immediately
+    if(parsedData.length > 0) {
+        renderHighRiskList();
     }
 };
 
@@ -682,10 +932,16 @@ window.closeUsageGuideModal = function() {
 };
 
 window.addEventListener('click', function(event) {
-    const btn = document.getElementById('btnRiskNav');
+    const btnNav = document.getElementById('btnRiskNav');
     const dropdown = document.getElementById('riskDropdown');
-    if (btn && dropdown && !btn.contains(event.target) && !dropdown.contains(event.target)) {
+    const settingsBtn = document.querySelector('.fa-gear').parentElement;
+    const settingsPanel = document.getElementById('riskSettingsPanel');
+    
+    if (btnNav && dropdown && !btnNav.contains(event.target) && !dropdown.contains(event.target)) {
         dropdown.style.display = 'none';
+    }
+    if (settingsBtn && settingsPanel && !settingsBtn.contains(event.target) && !settingsPanel.contains(event.target)) {
+        settingsPanel.style.display = 'none';
     }
     const modal = document.getElementById('surveyPreviewModal');
     if (event.target === modal) {
@@ -696,6 +952,97 @@ window.addEventListener('click', function(event) {
         closeUsageGuideModal();
     }
 });
+
+// MI Group Modal Logic
+window.openMiGroupsModal = function() {
+    if(parsedData.length === 0) return alert("자료를 먼저 파싱해주세요.");
+    document.getElementById('miGroupsModal').style.display = 'flex';
+    populateMiGroups();
+};
+window.closeMiGroupsModal = function() {
+    document.getElementById('miGroupsModal').style.display = 'none';
+};
+
+function populateMiGroups() {
+    const miAreas = [
+        { name: '언어', icon: 'fa-language', color: '#EF4444' },
+        { name: '논리수학', icon: 'fa-calculator', color: '#F97316' },
+        { name: '공간', icon: 'fa-cube', color: '#EAB308' },
+        { name: '신체운동', icon: 'fa-person-running', color: '#10B981' },
+        { name: '음악', icon: 'fa-music', color: '#06B6D4' },
+        { name: '대인관계', icon: 'fa-users', color: '#3B82F6' },
+        { name: '자기성찰', icon: 'fa-user-check', color: '#8B5CF6' },
+        { name: '자연친화', icon: 'fa-leaf', color: '#D946EF' }
+    ];
+
+    let groupings = {};
+    miAreas.forEach(a => groupings[a.name] = []);
+
+    parsedData.forEach(row => {
+        let studentGradeStr = String(row['학년'] || row['학년 반 번호'] || Object.values(row)[0] || "5");
+        let version = 'v3';
+        if(studentGradeStr.includes('1') || studentGradeStr.includes('2')) version = 'v1';
+        else if(studentGradeStr.includes('3') || studentGradeStr.includes('4')) version = 'v2';
+
+        const rowKeysAll = Object.keys(row);
+        let dsKeys = rowKeysAll.filter(k => /^\\d+[\\.\\s]|\\[\\d+\\]/.test(k));
+        if (dsKeys.length === 0) dsKeys = rowKeysAll.slice(4).filter(k => !k.startsWith('_'));
+
+        const OFFSETS = {
+            v1: { '다중지능': 10 },
+            v2: { '다중지능': 14 },
+            v3: { '다중지능': 28 }
+        };
+
+        let miScores = [];
+        if(typeof MAPPING_DATA !== 'undefined' && MAPPING_DATA['다중지능']) {
+            Object.keys(MAPPING_DATA['다중지능']).forEach(sub => {
+                let sum = 0, c = 0;
+                const qNums = MAPPING_DATA['다중지능'][sub][version];
+                if(qNums) {
+                    qNums.forEach(q => {
+                        const globalIdx = OFFSETS[version]['다중지능'] + q - 1;
+                        if(globalIdx < dsKeys.length) {
+                            const valStr = row[dsKeys[globalIdx]];
+                            if(valStr) {
+                                const score = typeof extractScore === 'function' ? extractScore(valStr) : Number(String(valStr).replace(/[^\\d]/g, ''));
+                                if(score) { sum += score; c++; }
+                            }
+                        }
+                    });
+                }
+                if(c>0) miScores.push({name: sub, score: sum/c});
+            });
+        }
+        
+        if(miScores.length > 0) {
+            miScores.sort((a,b) => b.score - a.score);
+            const top2 = miScores.slice(0, 2);
+            top2.forEach(m => {
+                if(groupings[m.name]) groupings[m.name].push(getStudentName(row));
+            });
+        }
+    });
+
+    const grid = document.getElementById('miGroupsGrid');
+    grid.innerHTML = '';
+    miAreas.forEach(area => {
+        const students = groupings[area.name];
+        const studentHtml = students.map(s => `<span class="mi-student-badge">${s}</span>`).join('');
+        
+        grid.innerHTML += `
+            <div class="mi-card">
+                <div class="mi-card-header">
+                    <div class="mi-icon" style="background-color: ${area.color};"><i class="fa-solid ${area.icon}"></i></div>
+                    <div class="mi-card-title">${area.name} 지능</div>
+                </div>
+                <div class="mi-students-list">
+                    ${students.length > 0 ? studentHtml : '<span style="color:var(--text-muted); font-size:0.9rem;">해당 학생 없음</span>'}
+                </div>
+            </div>
+        `;
+    });
+}
 
 // Tab Switching Logic
 window.switchTab = function(tabId) {
@@ -710,10 +1057,19 @@ window.switchTab = function(tabId) {
 studentSelect.addEventListener('change', (e) => {
     const index = e.target.value;
     const profileCard = document.getElementById('studentProfile');
+    const homeContainer = document.getElementById('personalHomeContainer');
     
     if (index === "") {
         profileCard.style.display = 'none';
+        if(homeContainer && parsedData.length > 0) {
+            homeContainer.style.display = 'block';
+            populatePersonalHome();
+        }
         return;
+    }
+
+    if(homeContainer) {
+        homeContainer.style.display = 'none';
     }
 
     const row = parsedData[index];

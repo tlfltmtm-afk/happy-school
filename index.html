@@ -184,6 +184,7 @@
                     </div>
                     <div class="chart-card">
                         <h3>학급 다중지능 평균 분포 (방사형)</h3>
+                        <button class="btn btn-outline-primary btn-sm" onclick="openMiGroupsModal()" style="margin-bottom: 15px; width: 100%; justify-content: center;"><i class="fa-solid fa-users-viewfinder"></i> 영역별 학생그룹 확인하기</button>
                         <div class="canvas-wrapper"><canvas id="classMiChart"></canvas></div>
                     </div>
                     <div class="chart-card mbti-card">
@@ -211,6 +212,7 @@
                         <h1>개인별 맞춤 컨설팅</h1>
                         <p>분석할 학생을 아래 목록에서 선택해주세요.</p>
                         <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+                            <button id="personalHomeBtn" class="btn btn-outline-primary" style="padding: 8px 15px; margin-top: 0; background: #fff;" onclick="showPersonalHome()" title="학급 전체 요약(첫 화면)으로 이동"><i class="fa-solid fa-house"></i></button>
                             <select id="studentSelect" class="form-select" style="margin-top:0;">
                                 <option value="">-- 학생을 선택하세요 --</option>
                             </select>
@@ -223,10 +225,31 @@
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
                         <div style="display:flex; gap:10px;">
                             <button class="btn btn-outline-primary btn-sm" onclick="openUsageGuideModal()" style="border-color:#38BDF8; color:#0284C7; background:transparent;"><i class="fa-solid fa-circle-info"></i> 활용법</button>
-                            <div class="risk-nav-wrapper" style="position:relative;">
+                            <div class="risk-nav-wrapper" style="position:relative; display:flex; gap:5px; align-items:center;">
                                 <button id="btnRiskNav" class="btn btn-outline-danger btn-sm" onclick="toggleRiskDropdown()">
                                     <i class="fa-solid fa-triangle-exclamation"></i> 요주의 학생목록 <i class="fa-solid fa-caret-down"></i>
                                 </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="toggleRiskSettings()" style="padding: 4px 8px;" title="요주의 학생 조회 기준 설정"><i class="fa-solid fa-gear"></i></button>
+                                
+                                <div id="riskSettingsPanel" style="display:none; position:absolute; right:0; top:40px; width:320px; background:white; border:1px solid #ddd; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-radius:8px; z-index:105; padding:15px; text-align:left;">
+                                    <h4 style="margin-bottom:10px; font-size:0.95rem; color:var(--text-main);"><i class="fa-solid fa-sliders"></i> 요주의 학생 조회 기준 설정</h4>
+                                    <div style="margin-bottom:15px;">
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.85rem;">
+                                            <span>행복도 하위</span>
+                                            <span id="hapRiskLabel" style="font-weight:bold; color:#F59E0B;">20%</span>
+                                        </div>
+                                        <input type="range" id="hapRiskSlider" min="0" max="100" value="20" style="width:100%;" oninput="updateRiskSettings()">
+                                    </div>
+                                    <div>
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.85rem;">
+                                            <span>학교적응 하위</span>
+                                            <span id="adaptRiskLabel" style="font-weight:bold; color:#10B981;">20%</span>
+                                        </div>
+                                        <input type="range" id="adaptRiskSlider" min="0" max="100" value="20" style="width:100%;" oninput="updateRiskSettings()">
+                                    </div>
+                                    <p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px; line-height:1.4;">* 슬라이더를 조절하여 두 영역 중 하나라도 설정한 비율 이하에 속하는 학생을 조회합니다.</p>
+                                </div>
+
                                 <div id="riskDropdown" class="risk-dropdown" style="display:none; position:absolute; right:0; top:40px; width:300px; background:white; border:1px solid #ddd; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-radius:8px; z-index:100; max-height:400px; overflow-y:auto; padding:10px;">
                                     <!-- JS Injection -->
                                 </div>
@@ -242,6 +265,30 @@
                         </div>
                     </div>
                 </header>
+
+                <div id="personalHomeContainer" class="table-container" style="display: none; margin-top: 20px; overflow-x: auto; background: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                    <h3 style="margin-bottom: 15px; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-users"></i> 학급 학생 주요 정보 요약</h3>
+                    <table id="personalHomeTable" style="min-width: 900px; font-size: 0.9rem;">
+                        <thead style="background-color: #F8FAFC;">
+                            <tr>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(0)">선택 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(1)">연번 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(2)">학년 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(3)">반 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(4)">번호 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(5)">이름 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(6)">성별 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(7)">MBTI <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(8)">강점영역(상위2개) <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(9)">행복 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(10)">학교적응 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="11" class="empty-state">학생 데이터가 없습니다. 먼저 [응답 데이터 입력]에서 데이터를 등록해주세요.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
 
                 <div id="studentProfile" class="profile-card" style="display: none; margin-top:20px;">
                     <div class="profile-header">
@@ -622,6 +669,17 @@
                     </div>
                 </div>
             </div> <!-- End of surveyPreviewModal -->
+
+            <!-- MI Full Screen Modal -->
+            <div id="miGroupsModal" class="mi-fullscreen-modal" style="display:none;">
+                <div class="mi-modal-header">
+                    <h2><i class="fa-solid fa-brain"></i> 다중지능 영역별 우수 학생 분포</h2>
+                    <button class="mi-modal-close" onclick="closeMiGroupsModal()">&times;</button>
+                </div>
+                <div class="mi-grid" id="miGroupsGrid">
+                    <!-- JS Injection -->
+                </div>
+            </div>
 
             <!-- API Setup Modal -->
             <div id="apiSetupModal" class="modal-overlay" style="display:none; z-index: 9999;">
