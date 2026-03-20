@@ -276,6 +276,7 @@ function populateAiTable() {
             row._weaknesses = extracted.weaknesses.map(transformWeakness);
             row._aiGenerated = "";
         }
+        row._reqs = row._reqs || [];
 
         const strengthsHtml = row._strengths.map(s => 
             `<span class="keyword-badge strength active" onclick="toggleKeyword(this)">${s}</span>`
@@ -297,6 +298,18 @@ function populateAiTable() {
             <button class="btn btn-outline-secondary btn-sm" style="padding:2px 6px; font-size:0.8rem;" onclick="hideKeywordInput(${index}, 'weakness')">취소</button>
         </span>`;
 
+        const reqsHtml = row._reqs.map(r => 
+            `<span class="keyword-badge req active" onclick="toggleKeyword(this)">${r}</span>`
+        ).join('') + `
+        <span id="add-btn-req-${index}" class="keyword-badge add-btn" onclick="showKeywordInput(${index}, 'req')" style="margin-top:5px;"><i class="fa-solid fa-plus"></i> 추가</span>
+        <span id="input-container-req-${index}" style="display:none; flex-direction:column; gap:5px; margin-top:5px; width:100%;">
+            <input type="text" id="input-kw-req-${index}" class="form-select" style="width:100%; padding:4px; margin:0; font-size:0.85rem;" placeholder="입력">
+            <div style="display:flex; gap:5px; width:100%;">
+                <button class="btn btn-outline-primary btn-sm" style="flex:1; padding:2px 0; font-size:0.8rem;" onclick="submitCustomKeyword(${index}, 'req')">저장</button>
+                <button class="btn btn-outline-secondary btn-sm" style="flex:1; padding:2px 0; font-size:0.8rem;" onclick="hideKeywordInput(${index}, 'req')">취소</button>
+            </div>
+        </span>`;
+
         const tr = document.createElement('tr');
         tr.id = `ai-row-${index}`;
         tr.innerHTML = `
@@ -304,10 +317,10 @@ function populateAiTable() {
             <td><strong>${name}</strong><br><small style="color:var(--text-muted)">${meta}</small></td>
             <td id="ai-strengths-${index}">${strengthsHtml}</td>
             <td id="ai-weaknesses-${index}">${weaknessesHtml}</td>
-            <td><textarea id="ai-req-${index}" class="form-select" style="width:100%; height:80px; font-size:0.85rem; padding:8px; margin:0;" placeholder="ex) 수학 집중 지도"></textarea></td>
-            <td><button class="btn btn-outline-primary btn-sm" title="외부 AI웹 프롬프트 복사" onclick="copyManualPrompt(${index})" style="padding:6px;"><i class="fa-solid fa-square-arrow-up-right fa-lg"></i></button></td>
-            <td><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})"><i class="fa-solid fa-robot"></i></button></td>
-            <td id="ai-result-${index}" style="font-size:0.95rem; line-height:1.5; color:var(--text-muted);">
+            <td id="ai-reqs-${index}" style="vertical-align:middle; padding:10px;">${reqsHtml}</td>
+            <td style="vertical-align:middle; text-align:center;"><button class="btn btn-outline-primary btn-sm" title="외부 AI웹 프롬프트 복사" onclick="copyManualPrompt(${index})" style="width:100%; height:36px; display:flex; justify-content:center; align-items:center;"><i class="fa-solid fa-square-arrow-up-right fa-lg"></i></button></td>
+            <td style="vertical-align:middle; text-align:center;"><button class="btn btn-primary btn-sm" onclick="generateAiText(${index})" style="width:100%; height:36px; display:flex; justify-content:center; align-items:center;"><i class="fa-solid fa-robot fa-lg"></i></button></td>
+            <td id="ai-result-${index}" style="font-size:0.95rem; line-height:1.5; color:var(--text-muted); vertical-align:middle;">
                 [대기중] API Key 입력 후 클릭
             </td>
         `;
@@ -338,8 +351,10 @@ window.submitCustomKeyword = function(index, type) {
     const row = parsedData[index];
     if(type === 'strength') {
         if(!row._strengths.includes(word)) row._strengths.push(word);
-    } else {
+    } else if(type === 'weakness') {
         if(!row._weaknesses.includes(word)) row._weaknesses.push(word);
+    } else if(type === 'req') {
+        if(!row._reqs.includes(word)) row._reqs.push(word);
     }
     populateAiTable();
 };
@@ -363,9 +378,11 @@ window.generateManualPromptText = function(index) {
     // Read active badges from DOM
     const strengthNodes = document.querySelectorAll(`#ai-strengths-${index} .keyword-badge.strength.active`);
     const weaknessNodes = document.querySelectorAll(`#ai-weaknesses-${index} .keyword-badge.weakness.active`);
+    const reqNodes = document.querySelectorAll(`#ai-reqs-${index} .keyword-badge.req.active`);
     
     const activeStrengths = Array.from(strengthNodes).map(n => n.innerText);
     const activeWeaknesses = Array.from(weaknessNodes).map(n => n.innerText);
+    const activeReqs = Array.from(reqNodes).map(n => n.innerText);
     
     let prompt = `다음 학생의 학교생활기록부 행동발달 문장을 작성해줘.\n`;
     prompt += `- 학생 이름: ${name}\n`;
@@ -386,15 +403,13 @@ window.generateManualPromptText = function(index) {
         prompt += `- 문장 기본 분량: 약 ${basicLength}자 내외\n`;
     }
 
-    const individualReq = document.getElementById(`ai-req-${index}`)?.value.trim();
-
     prompt += `어조는 교사가 학생을 객관적이면서도 애정어린 시선으로 관찰한 긍정적 평어체로, '~함.', '~임.' 으로 끝나게 작성해줘.\n`;
 
     if (customReq) {
         prompt += `- 사용자 개별 추가 요구사항(공통): ${customReq}\n`;
     }
-    if (individualReq) {
-        prompt += `- 해당 학생 개별 요구사항: ${individualReq}\n`;
+    if (activeReqs.length > 0) {
+        prompt += `- 해당 학생 개별 요구사항: ${activeReqs.join(', ')}\n`;
     }
 
     return prompt;
@@ -1642,8 +1657,9 @@ window.downloadAiResults = function() {
         const activeStrengths = Array.from(strengthNodes).map(n => n.innerText).join(', ');
         const activeWeaknesses = Array.from(weaknessNodes).map(n => n.innerText).join(', ');
         
-        const individualReq = document.getElementById(`ai-req-${index}`)?.value.trim() || "";
-        const reqStr = individualReq.replace(/"/g, '""');
+        const reqNodes = document.querySelectorAll(`#ai-reqs-${index} .keyword-badge.req.active`);
+        const activeReqs = Array.from(reqNodes).map(n => n.innerText).join(', ');
+        const reqStr = activeReqs.replace(/"/g, '""');
 
         const aiResult = row._aiGenerated ? row._aiGenerated.replace(/"/g, '""') : "미생성";
         

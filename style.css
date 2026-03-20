@@ -572,6 +572,11 @@ tr:hover {
     color: #B45309;
     border-color: #F59E0B;
 }
+.keyword-badge.req.active {
+    background-color: #F3E8FF;
+    color: #7E22CE;
+    border-color: #A855F7;
+}
 .keyword-badge:not(.active):not(.add-btn) {
     background-color: #F1F5F9;
     color: #94A3B8;
