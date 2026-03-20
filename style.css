@@ -649,9 +649,9 @@ tr:hover {
 .mbti-bar-wrapper {
     flex: 1;
     display: flex;
-    height: 48px; /* Thicker bar */
+    height: 80px; /* Much thicker bar */
     background-color: var(--border-color);
-    border-radius: 24px;
+    border-radius: 40px;
     overflow: hidden;
 }
 
@@ -664,17 +664,25 @@ tr:hover {
     color: white;
     font-weight: 600;
     transition: width 0.6s ease;
-    white-space: nowrap;
+    white-space: normal;
+    text-align: center;
     overflow: hidden;
+    padding: 0 5px;
+    box-sizing: border-box;
+}
+
+.mbti-segment div {
+    margin-bottom: 4px;
 }
 
 .mbti-segment span {
     font-size: 0.75rem;
     font-weight: 400;
     opacity: 0.9;
-    max-width: 90%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    word-break: keep-all;
 }
 
 .mbti-segment.left-side {

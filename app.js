@@ -24,6 +24,12 @@ menuItems.forEach(item => {
         const targetId = item.getAttribute('data-target');
         document.getElementById(targetId).classList.add('active');
 
+        // Hide personalHomeContainer implicitly if not on personal-stats
+        if (targetId !== 'personal-stats') {
+            const hContainer = document.getElementById('personalHomeContainer');
+            if(hContainer) hContainer.style.display = 'none';
+        }
+
         // Trigger updates if necessary
         if(targetId === 'class-stats' && parsedData.length > 0) {
             updateClassCharts();
@@ -136,12 +142,21 @@ window.showPersonalHome = function() {
     }
 };
 
+window.selectStudentFromHome = function(index) {
+    const studentSelect = document.getElementById('studentSelect');
+    if(studentSelect) {
+        studentSelect.value = index;
+        studentSelect.dispatchEvent(new Event('change'));
+        document.getElementById('personalHomeContainer').style.display = 'none';
+    }
+};
+
 window.populatePersonalHome = function() {
     const tbody = document.querySelector('#personalHomeTable tbody');
     if(!tbody) return;
     
     if(parsedData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" class="empty-state">학생 데이터가 없습니다. 먼저 데이터를 파싱해주세요.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="empty-state">학생 데이터가 없습니다. 먼저 데이터를 파싱해주세요.</td></tr>';
         return;
     }
 
@@ -167,6 +182,13 @@ window.populatePersonalHome = function() {
             row._mbti = mbtiArr[Math.floor(Math.random() * mbtiArr.length)];
         }
         const mbti = row._mbti;
+        
+        let displayStrName = name;
+        let trStyle = "";
+        if (window.registeredTeacherIndex !== undefined && index === Number(window.registeredTeacherIndex)) {
+            displayStrName = name + ' 👑(교사)';
+            trStyle = 'background-color: #FEF9C3;';
+        }
 
         // Determine Version for offsets
         let studentGradeStr = String(row['학년'] || row['학년 반 번호'] || Object.values(row)[0] || "5");
@@ -226,21 +248,26 @@ window.populatePersonalHome = function() {
             topMiStr = miScores.slice(0, 2).map(m => `<span class="badge" style="background:#EBF8FF; color:#0284C7; border:1px solid #BAE6FD; padding:2px 6px; font-size:0.8rem; margin-right:4px;">${m.name}</span>`).join('');
         }
         
-        const moveBtn = `<button class="btn btn-outline-primary btn-sm" onclick="selectStudentFromHome(${index})" style="padding: 4px 8px; font-size: 0.8rem;">분석 이동</button>`;
+        const chkBox = `<input type="checkbox" class="student-checkbox" value="${index}" style="cursor: pointer;">`;
+        const actionHtml = `<div style="display:flex; align-items:center; gap:5px; justify-content:center;">${chkBox} <button class="btn btn-outline-primary btn-sm" onclick="selectStudentFromHome(${index})" style="padding: 2px 6px; font-size: 0.75rem;">보기</button></div>`;
         
         const tr = document.createElement('tr');
+        if (trStyle) tr.style = trStyle;
+        const chatBtnHtml = `<button class="btn btn-warning btn-sm" onclick="openAndStartPersonalChat(${index})" style="padding: 2px 8px; font-size: 0.75rem; background-color:#FDE047; color:#854D0E; border:1px solid #FACC15;"><i class="fa-regular fa-comments"></i> 챗봇 열기</button>`;
+        
         tr.innerHTML = `
-            <td style="padding: 8px;">${moveBtn}</td>
+            <td style="padding: 8px;">${actionHtml}</td>
             <td style="padding: 8px;">${index + 1}</td>
             <td style="padding: 8px;">${grade}</td>
             <td style="padding: 8px;">${cls}</td>
             <td style="padding: 8px;">${num}</td>
-            <td style="padding: 8px; font-weight: 600;">${name}</td>
+            <td style="padding: 8px; font-weight: 600;">${displayStrName}</td>
             <td style="padding: 8px;">${gender}</td>
             <td style="padding: 8px; font-weight: 600; color: #854D0E;">${mbti}</td>
             <td style="padding: 8px;">${topMiStr}</td>
             <td style="padding: 8px;" data-score="${hapAvg}">${hapStars}</td>
             <td style="padding: 8px;" data-score="${adaptAvg}">${adaptStars}</td>
+            <td style="padding: 8px; text-align:center;">${chatBtnHtml}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -560,33 +587,42 @@ window.generateManualPromptText = function(index) {
     const activeStrengths = Array.from(strengthNodes).map(n => n.innerText);
     const activeWeaknesses = Array.from(weaknessNodes).map(n => n.innerText);
     const activeReqs = Array.from(reqNodes).map(n => n.innerText);
+
+    const basePrompt = document.getElementById('aiBasePromptSetup')?.value.trim() || "당신은 15년 차 경력의 통찰력 있고 따뜻한 초등학교 교사입니다. 제공된 학생의 다면적 키워드 데이터를 바탕으로 생활기록부에 등재될 고품질의 '행동특성 및 종합의견'을 작성해 주세요.";
     
-    let prompt = `다음 학생의 학교생활기록부 행동발달 문장을 작성해줘.\n`;
-    prompt += `- 학생 이름: ${name}\n`;
-    prompt += `- 배경 정보: ${metaStr}\n`;
-    prompt += `- 주요 강점 키워드: ${activeStrengths.join(', ')}\n`;
-    if(activeWeaknesses.length > 0) {
-        prompt += `- 지도 및 보완 지점: ${activeWeaknesses.join(', ')}\n`;
+    let prompt = `${basePrompt}\n\n`;
+    prompt += `[행동발달 작성 대상 입력 데이터]\n`;
+    prompt += `- 대상 정보: ${metaStr}소속 ${name} 학생\n`;
+    
+    if (activeStrengths.length > 0) {
+        prompt += `- 강점 키워드: ${activeStrengths.join(', ')}\n`;
+    } else {
+        prompt += `- 강점 키워드: (특별히 선택된 키워드 없음)\n`;
     }
+    
+    if(activeWeaknesses.length > 0) {
+        prompt += `- 보완점 키워드: ${activeWeaknesses.join(', ')}\n`;
+    } else {
+        prompt += `- 보완점 키워드: (특별히 선택된 키워드 없음)\n`;
+    }
+    
+    prompt += `\n[추가 세부 요구 조건]\n`;
     
     if (isSecondTerm) {
         const lineBreaksCount = parseInt(document.getElementById('aiLineBreaks')?.value || '2', 10);
-        const breaksStr = '\n'.repeat(lineBreaksCount);
-        prompt += `- 문장 구성: 1학기와 2학기 내용이 포함되도록 생성하되, 1학기/2학기 내용이 중복되지 않도록 분리해서 작성.\n`;
-        prompt += `  * 1학기 분량: 약 ${term1Length}자 내외\n`;
-        prompt += `  * 2학기 분량: 약 ${term2Length}자 내외\n`;
-        prompt += `  * 주의사항: 1학기 내용 작성 후, 반드시 ${lineBreaksCount}줄 줄바꿈(엔터 ${lineBreaksCount}번)하여 문단을 명확히 구분한 뒤 2학기 내용을 이어서 작성할 것.\n`;
+        prompt += `- 요구 분량 특이사항: 1학기와 2학기 내용이 포함되도록 생성하되, 1학기/2학기 내용이 중복되지 않도록 분리해서 작성.\n`;
+        prompt += `  * 1학기 내용 분량: 약 ${term1Length}자 내외\n`;
+        prompt += `  * 2학기 내용 분량: 약 ${term2Length}자 내외\n`;
+        prompt += `  * 형태: 1학기 내용 작성 완료 후, 반드시 ${lineBreaksCount}줄 줄바꿈(엔터키 연속 ${lineBreaksCount}번)하여 문단을 명확히 나눈 뒤 다음 행부터 2학기 내용을 이어서 작성할 것.\n`;
     } else {
-        prompt += `- 문장 기본 분량: 약 ${basicLength}자 내외\n`;
+        prompt += `- 분량 요구사항: 총 분량 약 ${basicLength}자 내외로 전체를 묶어서 자연스럽게 구성할 것.\n`;
     }
-
-    prompt += `어조는 교사가 학생을 객관적이면서도 애정어린 시선으로 관찰한 긍정적 평어체로, '~함.', '~임.' 으로 끝나게 작성해줘.\n`;
 
     if (customReq) {
-        prompt += `- 사용자 개별 추가 요구사항(공통): ${customReq}\n`;
+        prompt += `- 학급 전체 공통 설정 사항: ${customReq}\n`;
     }
     if (activeReqs.length > 0) {
-        prompt += `- 해당 학생 개별 요구사항: ${activeReqs.join(', ')}\n`;
+        prompt += `- 해당 단일 학생 개별 요구사항: ${activeReqs.join(', ')}\n`;
     }
 
     return prompt;
@@ -601,7 +637,7 @@ window.copyManualPrompt = function(index) {
 // Create mock AI result or use real logic depending on future Needs
 window.generateAiText = function(index) {
     const row = parsedData[index];
-    const apiKey = document.getElementById('apiKeyInput')?.value || '';
+    const apiKey = globalApiKey;
     const resultCell = document.getElementById(`ai-result-${index}`);
     
     // Read active badges from DOM
@@ -629,9 +665,9 @@ window.generateAiText = function(index) {
 document.getElementById('generateAllBtn').addEventListener('click', () => {
     if(parsedData.length === 0) return alert("데이터를 먼저 분석해주세요.");
     
-    const apiKey = document.getElementById('apiKeyInput')?.value || globalApiKey;
+    const apiKey = globalApiKey;
     if(!apiKey) {
-        alert("글로벌 API 키 설정이 먼저 필요합니다. 좌측 톱니바퀴 또는 '내 API Key 설정' 버튼을 눌러 API 키를 먼저 등록해주세요.");
+        alert("글로벌 API 키 설정이 먼저 필요합니다. 좌측 메뉴 하단의 '내 API Key 설정' 버튼을 눌러 API 키를 먼저 등록해주세요.");
         return;
     }
     
@@ -784,7 +820,7 @@ window.renderHighRiskList = function() {
     const riskDropdownContainer = document.getElementById('riskDropdown');
     const btnRiskNav = document.getElementById('btnRiskNav');
     
-    if(!riskListContainer || !riskDropdownContainer || parsedData.length === 0) return;
+    if((!riskListContainer && !riskDropdownContainer) || parsedData.length === 0) return;
 
     // Get slider values (default 20%)
     const hapRiskPct = parseInt(document.getElementById('hapRiskSlider')?.value || "20", 10);
@@ -854,8 +890,8 @@ window.renderHighRiskList = function() {
         dropdownHtml = `<div style="padding:15px; text-align:center; color:var(--text-muted);">요주의 학생이 없습니다.</div>`;
     }
     
-    riskListContainer.innerHTML = riskHtml;
-    riskDropdownContainer.innerHTML = dropdownHtml;
+    if(riskListContainer) riskListContainer.innerHTML = riskHtml;
+    if(riskDropdownContainer) riskDropdownContainer.innerHTML = dropdownHtml;
 
     if(btnRiskNav) {
         btnRiskNav.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 요주의 학생목록 (${riskCount}명) <i class="fa-solid fa-caret-down"></i>`;
@@ -891,8 +927,7 @@ window.hideMbtiTooltip = function() {
 // Risk Dropdown UI
 window.toggleRiskDropdown = function() {
     const dropdown = document.getElementById('riskDropdown');
-    const settings = document.getElementById('riskSettingsPanel');
-    if(settings) settings.style.display = 'none'; // Close settings if open
+    window.closeRiskSettingsModal(); // Close settings if open
     if (dropdown.style.display === 'none') {
         dropdown.style.display = 'block';
     } else {
@@ -900,16 +935,21 @@ window.toggleRiskDropdown = function() {
     }
 };
 
-window.toggleRiskSettings = function() {
-    const settings = document.getElementById('riskSettingsPanel');
+window.toggleRiskSettingsModal = function() {
+    const settings = document.getElementById('riskSettingsModalOverlay');
     const dropdown = document.getElementById('riskDropdown');
     if(dropdown) dropdown.style.display = 'none'; // Close dropdown if open
     
     if (settings.style.display === 'none') {
-        settings.style.display = 'block';
+        settings.style.display = 'flex';
     } else {
         settings.style.display = 'none';
     }
+};
+
+window.closeRiskSettingsModal = function() {
+    const settings = document.getElementById('riskSettingsModalOverlay');
+    if(settings) settings.style.display = 'none';
 };
 
 window.updateRiskSettings = function() {
@@ -931,22 +971,64 @@ window.closeUsageGuideModal = function() {
     document.getElementById('usageGuideModal').style.display = 'none';
 };
 
+// Teacher Registration
+window.registeredTeacherIndex = undefined;
+window.openTeacherRegistrationModal = function() {
+    if (parsedData.length === 0) return alert("데이터를 먼저 파싱해주세요.");
+    const sel = document.getElementById('teacherDataSelect');
+    sel.innerHTML = '<option value="">-- 응답자 목록에서 선택 --</option>';
+    parsedData.forEach((row, i) => {
+        sel.innerHTML += `<option value="${i}">${getStudentMeta(row)} ${getStudentName(row)}</option>`;
+    });
+    if (window.registeredTeacherIndex !== undefined) {
+        sel.value = window.registeredTeacherIndex;
+    }
+    document.getElementById('teacherRegistrationModal').style.display = 'flex';
+};
+window.closeTeacherRegistrationModal = function() {
+    document.getElementById('teacherRegistrationModal').style.display = 'none';
+};
+window.confirmTeacherRegistration = function() {
+    const sel = document.getElementById('teacherDataSelect');
+    if (sel.value === "") {
+        if(confirm("특정 교사를 선택하지 않았습니다. 교사 등록을 해제하시겠습니까?")) {
+            window.registeredTeacherIndex = undefined;
+            window.closeTeacherRegistrationModal();
+            if(document.getElementById('personalHomeContainer').style.display !== 'none') populatePersonalHome();
+            alert("교사 등록이 해제되었습니다.");
+        }
+    } else {
+        window.registeredTeacherIndex = sel.value;
+        const name = getStudentName(parsedData[sel.value]);
+        window.closeTeacherRegistrationModal();
+        if(document.getElementById('personalHomeContainer').style.display !== 'none') populatePersonalHome();
+        alert(`[${name}] 선생님이 컨설팅 교사로 등록되었습니다! 앞으로의 AI 컨설팅에 교사의 데이터가 반영됩니다.`);
+    }
+};
+
 window.addEventListener('click', function(event) {
     const btnNav = document.getElementById('btnRiskNav');
     const dropdown = document.getElementById('riskDropdown');
-    const settingsBtn = document.querySelector('.fa-gear').parentElement;
-    const settingsPanel = document.getElementById('riskSettingsPanel');
+    const settingsBtn1 = document.querySelector('.high-risk-section .fa-gear')?.parentElement;
+    const settingsBtn2 = document.querySelector('.risk-nav-wrapper .fa-gear')?.parentElement;
+    const settingsPanel = document.getElementById('riskSettingsModalOverlay');
     
     if (btnNav && dropdown && !btnNav.contains(event.target) && !dropdown.contains(event.target)) {
         dropdown.style.display = 'none';
     }
-    if (settingsBtn && settingsPanel && !settingsBtn.contains(event.target) && !settingsPanel.contains(event.target)) {
-        settingsPanel.style.display = 'none';
+    if (settingsPanel && event.target === settingsPanel) {
+        closeRiskSettingsModal();
     }
     const modal = document.getElementById('surveyPreviewModal');
     if (event.target === modal) {
         closeSurveyPreview();
     }
+    const tModal = document.getElementById('teacherRegistrationModal');
+    if (event.target === tModal) {
+        closeTeacherRegistrationModal();
+    }
+    const miModal = document.getElementById('miGroupsModal');
+    if (event.target === miModal) closeMiGroupsModal();
     const usageModal = document.getElementById('usageGuideModal');
     if (event.target === usageModal) {
         closeUsageGuideModal();
@@ -1360,12 +1442,47 @@ studentSelect.addEventListener('change', (e) => {
     });
     allHtml += '</tbody></table>';
     if(document.getElementById('studentSurveyRaw')) document.getElementById('studentSurveyRaw').innerHTML = allHtml;
+    
+    renderStudentChatHistoryReport(studentIdx);
 });
+
+window.renderStudentChatHistoryReport = function(studentIdx) {
+    if (studentIdx === undefined || studentIdx === null) {
+        studentIdx = document.getElementById('studentSelect').value;
+    }
+    const container = document.getElementById('studentChatReportContainer');
+    const body = document.getElementById('studentChatReportBody');
+    if(!container || !body || studentIdx === "" || !parsedData[studentIdx]) return;
+    
+    const row = parsedData[studentIdx];
+    if (row._chatHistory && row._chatHistory.length > 0) {
+        container.style.display = 'block';
+        let textContent = "";
+        row._chatHistory.forEach(msg => {
+            let roleName = msg.role === 'user' ? "선생님(본인)" : "AI 컨설턴트";
+            let formatted = msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            textContent += `<strong>▶ ${roleName}</strong>\n${formatted}\n\n<hr style="border:0; border-top:1px dashed #eee; margin:10px 0;">\n\n`;
+        });
+        body.innerHTML = textContent;
+    } else {
+        container.style.display = 'none';
+        body.innerHTML = '';
+    }
+};
 
 // Gemini API & Chat Logic
 let globalApiKey = sessionStorage.getItem('geminiApiKey') || "";
+let globalApiModel = sessionStorage.getItem('geminiApiModel') || "gemini-2.5-flash";
+
+// 만료된 모델이 저장되어 있다면 강제로 최신 2.5 flash 모델로 자동 교체합니다
+if (globalApiModel.includes("exp") || globalApiModel === "gemini-2.0-flash-exp") {
+    globalApiModel = "gemini-2.5-flash";
+    sessionStorage.setItem('geminiApiModel', globalApiModel);
+}
+
 let currentChatContext = ""; 
 let chatHistory = [];
+let currentChatStudentIndex = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     updateApiStatusBadge();
@@ -1402,6 +1519,11 @@ function updateApiStatusBadge() {
 
 window.openApiModal = function() {
     document.getElementById('globalApiKeyInput').value = globalApiKey;
+    if (document.getElementById('geminiModelSelect').querySelector(`option[value="${globalApiModel}"]`)) {
+        document.getElementById('geminiModelSelect').value = globalApiModel;
+    } else {
+        document.getElementById('geminiModelSelect').value = "gemini-2.5-flash";
+    }
     document.getElementById('apiSetupModal').style.display = 'flex';
 };
 
@@ -1411,11 +1533,15 @@ window.closeApiModal = function() {
 
 window.saveApiKey = function() {
     const key = document.getElementById('globalApiKeyInput').value.trim();
+    const model = document.getElementById('geminiModelSelect').value;
+    
     if(key) {
         globalApiKey = key;
+        globalApiModel = model;
         sessionStorage.setItem('geminiApiKey', key);
+        sessionStorage.setItem('geminiApiModel', model);
         updateApiStatusBadge();
-        alert("API 키가 임시 적용되었습니다.");
+        alert(`API 설정이 완료되었습니다. (선택 모델: ${model})`);
         closeApiModal();
     } else {
         alert("API 키를 입력해주세요.");
@@ -1424,17 +1550,41 @@ window.saveApiKey = function() {
 
 window.resetApiKey = function() {
     globalApiKey = "";
+    globalApiModel = "gemini-2.5-flash";
     sessionStorage.removeItem('geminiApiKey');
+    sessionStorage.removeItem('geminiApiModel');
     document.getElementById('globalApiKeyInput').value = "";
+    document.getElementById('geminiModelSelect').value = "gemini-2.5-flash";
     updateApiStatusBadge();
-    alert("API 키가 초기화되었습니다.");
+    alert("API 설정이 초기화되었습니다.");
 };
 
-window.callGeminiApi = async function(prompt) {
+window.callGeminiApi = async function(prompt, retryCount = 0) {
     if(!globalApiKey) {
         throw new Error("API 키가 설정되지 않았습니다.");
     }
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${globalApiKey}`;
+    
+    let activeModel = globalApiModel;
+    let apiVersion = "v1";
+
+    // "무적의 방법": 실패 시 구글의 모든 조합(v1, v1beta, flash강등)을 우회 시도합니다.
+    if (retryCount === 1) {
+        // v1 <-> v1beta 크로스오버 시도
+        apiVersion = (activeModel.includes("2.5") || activeModel.includes("beta")) ? "v1" : "v1beta";
+    } else if (retryCount === 2) {
+        // 최후의 보루: 가장 안정적인 1.5 flash 정식버전으로 자동 다운그레이드 접속
+        activeModel = "gemini-1.5-flash";
+        apiVersion = "v1beta";
+    } else if (retryCount > 2) {
+        throw new Error("모든 우회 시도(3회)에 실패했습니다. 사용하시는 API 키의 권한 문제이거나 서버 오류일 가능성이 높습니다.");
+    } else {
+        // 첫 시도 라우팅
+        if (activeModel.includes("2.5") || activeModel.includes("beta") || activeModel.includes("exp")) {
+            apiVersion = "v1beta";
+        }
+    }
+    
+    const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${activeModel}:generateContent?key=${globalApiKey}`;
     
     // Convert history + current prompt to Gemini format
     const contents = chatHistory.map(msg => ({
@@ -1448,17 +1598,38 @@ window.callGeminiApi = async function(prompt) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contents: contents })
     }).catch(e => {
-        throw new Error("네트워크 연결 실패(교내망 등 보안 프로그램 차단) 또는 API 키 오류일 수 있습니다. 외부망에서 접속해보세요. 원문: " + e.message);
+        throw new Error("네트워크 연결 실패(교내망 등 보안 프로그램 차단) 또는 API 키 오류일 수 있습니다. 원문: " + e.message);
     });
     
     if(!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error?.message || "알 수 없는 API 서버 오류 발생");
+        const errData = await response.json().catch(()=>({}));
+        const errMsg = errData.error?.message || "알 수 없는 API 서버 오류 발생";
+        
+        // not found나 not supported 에러일 경우 무조건 리트라이 재귀 호출
+        if (errMsg.toLowerCase().includes("not found") || errMsg.toLowerCase().includes("not supported")) {
+            console.warn(`[Auto Retry ${retryCount+1}] Model or API Version failed. Rerouting...`);
+            return window.callGeminiApi(prompt, retryCount + 1);
+        }
+        throw new Error(errMsg);
     }
     
     const data = await response.json();
     return data.candidates[0].content.parts[0].text;
 };
+
+// Helper to append Teacher info to AI Prompts
+function getTeacherInfoString() {
+    let str = "";
+    if (window.registeredTeacherIndex !== undefined && parsedData[window.registeredTeacherIndex]) {
+        const tRow = parsedData[window.registeredTeacherIndex];
+        const tName = getStudentName(tRow);
+        const tMbti = tRow._mbti || "미상";
+        const s = tRow._strengths ? tRow._strengths.join(", ") : "";
+        
+        str = `\n\n[교사(컨설턴트) 본인 정보 참고 데이터]\n- 교사 이름: ${tName}\n- 교사 추정 MBTI: ${tMbti}\n- 교사 주요 발달 강점: ${s}\n* 추가 지시문: 답변 시 교사의 이러한 특성 및 성향을 고려하여, 학생(또는 학급)과의 궁합 및 지도 시너지를 유발할 수 있는 방향으로 대화 흐름을 전개해주세요.`;
+    }
+    return str;
+}
 
 // Chat UI Controls
 window.openStudentConsultingChat = function() {
@@ -1468,6 +1639,8 @@ window.openStudentConsultingChat = function() {
         alert("글로벌 API 키 설정이 필요합니다. 좌측 메뉴 하단의 버튼을 눌러 설정해주세요.");
         return openApiModal();
     }
+    
+    currentChatStudentIndex = studentIdx;
     
     const row = parsedData[studentIdx];
     const name = getStudentName(row);
@@ -1479,7 +1652,110 @@ window.openStudentConsultingChat = function() {
     currentChatContext = `선생님은 초등학교 교사이고, 나는 선생님을 돕는 교육 AI 컨설턴트입니다.
 현재 우리는 [${name}(${getStudentMeta(row)})] 학생에 대해 논의 중입니다.
 학생의 MBTI는 ${row._mbti || "미상"}이며, 눈여겨볼 강점은 [${strengths}]이고, 지도/보완점은 [${weaknesses}]입니다.
-선생님이 질문하시면 친절하고 실천 가능하며 선생님을 배려하는 어조로 짧고 명확하게 답변해주세요. 첫 인사를 부탁합니다.`;
+선생님이 질문하시면 친절하고 실천 가능하며 선생님을 배려하는 어조로 짧고 명확하게 답변해주세요. 첫 인사를 부탁합니다.` + getTeacherInfoString();
+    
+    initChatOverlay();
+};
+
+// Multiple Selection Logic
+window.toggleAllStudentsSelection = function(checkbox) {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(cb => { cb.checked = checkbox.checked; });
+};
+
+window.openAndStartPersonalChat = function(index) {
+    selectStudentFromHome(index);
+    setTimeout(() => {
+        openStudentConsultingChat();
+    }, 100);
+};
+
+window.openCombinedConsultingChat = function() {
+    const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+    if (checkedBoxes.length > 0) {
+        if (checkedBoxes.length === 1) {
+            openAndStartPersonalChat(checkedBoxes[0].value);
+        } else {
+            openBatchConsultingChat();
+        }
+    } else {
+        const studentIdx = document.getElementById('studentSelect').value;
+        if (studentIdx === "") return alert("컨설팅을 받을 학생을 목록에서 선택하거나 체크박스로 선택해주세요.");
+        openStudentConsultingChat();
+    }
+};
+
+window.openCombinedAiLinkModal = function() {
+    const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+    if (checkedBoxes.length > 0) {
+        if (checkedBoxes.length === 1) {
+            selectStudentFromHome(checkedBoxes[0].value);
+            setTimeout(() => {
+                startGeminiConsulting();
+            }, 100);
+        } else {
+            startBatchGeminiConsulting();
+        }
+    } else {
+        const studentIdx = document.getElementById('studentSelect').value;
+        if (studentIdx === "") return alert("컨설팅을 받을 학생을 목록에서 선택하거나 체크박스로 선택해주세요.");
+        startGeminiConsulting();
+    }
+};
+
+window.startBatchGeminiConsulting = function() {
+    const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+    if (checkedBoxes.length === 0) return alert("다중 컨설팅을 받을 학생을 먼저 1명 이상 선택해주세요.");
+    
+    let studentDetails = [];
+    checkedBoxes.forEach(cb => {
+        const idx = cb.value;
+        const row = parsedData[idx];
+        const name = getStudentName(row);
+        const strengths = row._strengths ? row._strengths.join(", ") : "특이사항 없음";
+        const weaknesses = row._weaknesses ? row._weaknesses.join(", ") : "특이사항 없음";
+        studentDetails.push(`- ${name} (${getStudentMeta(row)}), MBTI: ${row._mbti || "미상"}, 강점: ${strengths}, 보완점: ${weaknesses}`);
+    });
+    
+    const prompt = `선생님은 초등학교 교사이고, 나는 선생님을 돕는 교육 AI 컨설턴트입니다.
+현재 우리는 다음 ${checkedBoxes.length}명의 학생들에 대해 동시에 고민하고 논의 중입니다.
+
+[선택된 학생들 정보]
+${studentDetails.join('\n')}
+
+선생님이 위 학생들을 묶어서 어떤 활동이나 지도를 해야 할지, 혹은 개별적으로 어떻게 접근하면 좋을지 질문하시면, 그룹 다이내믹스와 개인 성향을 동시에 고려하여 실천 가능한 팁을 제안해주세요. 첫 인사를 부탁합니다.` + getTeacherInfoString();
+    
+    openAiSiteModal(prompt, `${checkedBoxes.length}명의 요약 정보와 컨설팅 프롬프트가 복사되었습니다!`);
+};
+
+window.openBatchConsultingChat = function() {
+    const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+    if (checkedBoxes.length === 0) return alert("다중 컨설팅을 받을 학생을 먼저 1명 이상 선택해주세요.");
+    
+    if (!globalApiKey) {
+        alert("글로벌 API 키 설정이 필요합니다. 좌측 메뉴 하단의 버튼을 눌러 설정해주세요.");
+        return openApiModal();
+    }
+    
+    let studentDetails = [];
+    checkedBoxes.forEach(cb => {
+        const idx = cb.value;
+        const row = parsedData[idx];
+        const name = getStudentName(row);
+        const strengths = row._strengths ? row._strengths.join(", ") : "특이사항 없음";
+        const weaknesses = row._weaknesses ? row._weaknesses.join(", ") : "특이사항 없음";
+        studentDetails.push(`- ${name} (${getStudentMeta(row)}), MBTI: ${row._mbti || "미상"}, 강점: ${strengths}, 보완점: ${weaknesses}`);
+    });
+    
+    document.getElementById('chatTitle').innerText = `${checkedBoxes.length}명 요약 동시 컨설팅`;
+    
+    currentChatContext = `선생님은 초등학교 교사이고, 나는 선생님을 돕는 교육 AI 컨설턴트입니다.
+현재 우리는 다음 ${checkedBoxes.length}명의 학생들에 대해 동시에 고민하고 논의 중입니다.
+
+[선택된 학생들 정보]
+${studentDetails.join('\n')}
+
+선생님이 위 학생들을 묶어서 어떤 활동이나 지도를 해야 할지, 혹은 개별적으로 어떻게 접근하면 좋을지 질문하시면, 그룹 다이내믹스와 개인 성향을 동시에 고려하여 실천 가능한 팁을 제안해주세요. 첫 인사를 부탁합니다.` + getTeacherInfoString();
     
     initChatOverlay();
 };
@@ -1496,7 +1772,7 @@ window.openClassConsultingChat = function() {
     currentChatContext = `선생님은 초등학교 교사이고, 나는 선생님을 돕는 교육 AI 컨설턴트입니다.
 현재 우리 학급에는 총 ${parsedData.length}명의 학생이 있습니다.
 선생님이 학급 경영, 수업 방향, 전체적인 분위기 조성에 대해 질문을 하실 것입니다.
-질문이 오면 친절하고 실제 교실에서 쓰일 수 있는 구체적인 팁 위주로 명확하게 답변해주세요. 첫 인사를 부탁합니다.`;
+질문이 오면 친절하고 실제 교실에서 쓰일 수 있는 구체적인 팁 위주로 명확하게 답변해주세요. 첫 인사를 부탁합니다.` + getTeacherInfoString();
     
     initChatOverlay();
 };
@@ -1611,7 +1887,7 @@ ${distStr}
 
 추가로, 위 요인별 문항 매핑(정량 분석) 지표 중 상대적으로 수치가 가장 낮거나 보완이 절실해 보이는 영역을 1~2가지 꼭 집어내어,
 이를 극복할 수 있는 전체 학급 차원의 협동 활동이나 조종례 시간 활용 팁을 포함해주세요.
-어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시길 바랍니다.`;
+어조는 담임 교사에게 따뜻하고 깊이 있게 조언하듯 존댓말로 작성해주시길 바랍니다.` + getTeacherInfoString();
 
     openAiSiteModal(prompt, "학급 전체 요약 정보와 컨설팅 프롬프트가 복사되었습니다!");
 };
@@ -1671,16 +1947,42 @@ ${surveyResponses}
 - 예시 2: [관계성 점수가 낮게 나왔는데 교실에서 친구들과 어울릴 수 있는 교우관계 향상 방안 제안] 
 - 예시 3: [강점 키워드에 따른 진로 전략 제안]
 - 예시 4: [부모님께 부드럽게 전달할 수 있는 학부모 상담 기초자료 작성]
-- 예시 5: [학기말 이 학생의 성장을 격려하고 칭찬하는 5줄 이내의 편지 작성]`;
+- 예시 5: [학기말 이 학생의 성장을 격려하고 칭찬하는 5줄 이내의 편지 작성]` + getTeacherInfoString();
 
     openAiSiteModal(prompt, `[${name}] 학생의 정보와 컨설팅 프롬프트가 복사되었습니다!`);
 };
+
+function persistChatHistory() {
+    if (currentChatStudentIndex !== null && parsedData[currentChatStudentIndex]) {
+        parsedData[currentChatStudentIndex]._chatHistory = [...chatHistory];
+        if (typeof window.renderStudentChatHistoryReport === 'function') {
+            window.renderStudentChatHistoryReport(currentChatStudentIndex);
+        }
+    }
+}
 
 function initChatOverlay() {
     chatHistory = [];
     document.getElementById('chatBody').innerHTML = '';
     document.getElementById('chatOverlay').style.display = 'block';
     
+    // Restore history if personal consulting and exists
+    if (currentChatStudentIndex !== null && parsedData[currentChatStudentIndex]._chatHistory) {
+        chatHistory = [...parsedData[currentChatStudentIndex]._chatHistory];
+        chatHistory.forEach(msg => {
+            const chatBody = document.getElementById('chatBody');
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${msg.role}-bubble`;
+            let formattedText = msg.text.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+            formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            bubble.innerHTML = formattedText;
+            chatBody.appendChild(bubble);
+        });
+        const cBody = document.getElementById('chatBody');
+        cBody.scrollTop = cBody.scrollHeight;
+        return; // Skip initiating new connect
+    }
+
     // System Prompt 초기화
     addChatBubble("bot", `<i class="fa-solid fa-spinner fa-spin"></i> 연결 중...`);
     
@@ -1688,6 +1990,7 @@ function initChatOverlay() {
         document.getElementById('chatBody').innerHTML = '';
         addChatBubble("bot", resText);
         chatHistory.push({ role: 'bot', text: resText });
+        persistChatHistory();
     }).catch(err => {
         document.getElementById('chatBody').innerHTML = '';
         addChatBubble("bot", "API 연결에 실패했습니다. 키가 올바른지 확인해주세요. (" + err.message + ")");
@@ -1695,6 +1998,8 @@ function initChatOverlay() {
 }
 
 window.closeChatOverlay = function() {
+    persistChatHistory();
+    currentChatStudentIndex = null;
     document.getElementById('chatOverlay').style.display = 'none';
 };
 
@@ -1734,6 +2039,7 @@ window.sendChatMessage = function() {
         document.getElementById(loadingId).remove();
         addChatBubble("bot", resText);
         chatHistory.push({ role: 'bot', text: resText });
+        persistChatHistory();
     }).catch(err => {
         document.getElementById(loadingId).remove();
         addChatBubble("bot", `<span style="color:#E53E3E;">에러가 발생했습니다: ${err.message}</span>`);
@@ -1765,6 +2071,8 @@ window.requestChatAction = function(actionType) {
     
     if(promptMsg) {
         addChatBubble("user", `[시스템 요청: ${actionType === 'summary' ? '대화 요약' : '내용 정리'}]`);
+        chatHistory.push({ role: 'user', text: `[시스템 요청: ${actionType === 'summary' ? '대화 요약' : '내용 정리'}]` });
+        persistChatHistory();
         
         const loadingId = "loading-" + Date.now();
         const chatBody = document.getElementById('chatBody');
@@ -1779,6 +2087,7 @@ window.requestChatAction = function(actionType) {
             document.getElementById(loadingId).remove();
             addChatBubble("bot", resText);
             chatHistory.push({ role: 'bot', text: resText });
+            persistChatHistory();
         }).catch(err => {
             document.getElementById(loadingId).remove();
             addChatBubble("bot", "오류 발생: " + err.message);
@@ -2151,7 +2460,8 @@ window.exportData = function() {
             aiTerm2Length: document.getElementById('aiTerm2Length')?.value || '200',
             aiLineBreaks: document.getElementById('aiLineBreaks')?.value || '2',
             aiSecondSemesterCheck: document.getElementById('aiSecondSemesterCheck')?.checked || false,
-            aiCustomRequest: document.getElementById('aiCustomRequest')?.value || ''
+            aiCustomRequest: document.getElementById('aiCustomRequest')?.value || '',
+            aiBasePromptSetup: document.getElementById('aiBasePromptSetup')?.value || ''
         }
     };
 
@@ -2198,6 +2508,9 @@ window.importData = function(event) {
                 if(document.getElementById('aiTerm2Length')) document.getElementById('aiTerm2Length').value = result.uiPrefs.aiTerm2Length || '200';
                 if(document.getElementById('aiLineBreaks')) document.getElementById('aiLineBreaks').value = result.uiPrefs.aiLineBreaks || '2';
                 if(document.getElementById('aiCustomRequest')) document.getElementById('aiCustomRequest').value = result.uiPrefs.aiCustomRequest || '';
+                if(document.getElementById('aiBasePromptSetup') && result.uiPrefs.aiBasePromptSetup) {
+                    document.getElementById('aiBasePromptSetup').value = result.uiPrefs.aiBasePromptSetup;
+                }
                 
                 const secCheck = document.getElementById('aiSecondSemesterCheck');
                 if(secCheck) {

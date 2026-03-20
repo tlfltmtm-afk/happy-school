@@ -184,7 +184,7 @@
                     </div>
                     <div class="chart-card">
                         <h3>학급 다중지능 평균 분포 (방사형)</h3>
-                        <button class="btn btn-outline-primary btn-sm" onclick="openMiGroupsModal()" style="margin-bottom: 15px; width: 100%; justify-content: center;"><i class="fa-solid fa-users-viewfinder"></i> 영역별 학생그룹 확인하기</button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="openMiGroupsModal()" style="margin-bottom: 15px; width: 100%; justify-content: center;"><i class="fa-solid fa-users-viewfinder"></i> 영역별 학급그룹 확인(상위2개)</button>
                         <div class="canvas-wrapper"><canvas id="classMiChart"></canvas></div>
                     </div>
                     <div class="chart-card mbti-card">
@@ -192,14 +192,6 @@
                         <div id="mbtiDistribution" class="mbti-container">
                             <!-- JS Injection -->
                         </div>
-                    </div>
-                </div>
-
-                <div class="high-risk-section" style="margin-top: 30px;">
-                    <h3 style="color:var(--text-main); margin-bottom: 15px;"><i class="fa-solid fa-triangle-exclamation"
-                            style="color:#E53E3E;"></i> 전문가 기준 관심 필요 학생</h3>
-                    <div id="highRiskList" class="risk-list-container">
-                        <!-- JS Injection -->
                     </div>
                 </div>
             </section>
@@ -218,60 +210,37 @@
                             </select>
                             <button class="btn btn-outline-tertiary btn-sm" onclick="window.print()"><i
                                     class="fa-solid fa-file-pdf"></i> 현재 학생 리포트 저장</button>
-                            <button class="btn btn-outline-primary btn-sm" onclick="downloadAllPersonalReports()"><i
-                                    class="fa-solid fa-file-pdf"></i> 전체 학생 일괄 저장</button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="downloadAllPersonalReports()"><i class="fa-solid fa-file-pdf"></i> 전체 일괄 저장</button>
                         </div>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
                         <div style="display:flex; gap:10px;">
+                            <button class="btn btn-primary btn-sm" onclick="openCombinedConsultingChat()" style="background-color:#FDE047; color:#854D0E; border-color:#FACC15;"><i class="fa-solid fa-comments"></i> AI 컨설턴트(API)</button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="openCombinedAiLinkModal()"><i class="fa-regular fa-copy"></i> API 미등록(외부) </button>
                             <button class="btn btn-outline-primary btn-sm" onclick="openUsageGuideModal()" style="border-color:#38BDF8; color:#0284C7; background:transparent;"><i class="fa-solid fa-circle-info"></i> 활용법</button>
-                            <div class="risk-nav-wrapper" style="position:relative; display:flex; gap:5px; align-items:center;">
-                                <button id="btnRiskNav" class="btn btn-outline-danger btn-sm" onclick="toggleRiskDropdown()">
-                                    <i class="fa-solid fa-triangle-exclamation"></i> 요주의 학생목록 <i class="fa-solid fa-caret-down"></i>
-                                </button>
-                                <button class="btn btn-outline-secondary btn-sm" onclick="toggleRiskSettings()" style="padding: 4px 8px;" title="요주의 학생 조회 기준 설정"><i class="fa-solid fa-gear"></i></button>
-                                
-                                <div id="riskSettingsPanel" style="display:none; position:absolute; right:0; top:40px; width:320px; background:white; border:1px solid #ddd; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-radius:8px; z-index:105; padding:15px; text-align:left;">
-                                    <h4 style="margin-bottom:10px; font-size:0.95rem; color:var(--text-main);"><i class="fa-solid fa-sliders"></i> 요주의 학생 조회 기준 설정</h4>
-                                    <div style="margin-bottom:15px;">
-                                        <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.85rem;">
-                                            <span>행복도 하위</span>
-                                            <span id="hapRiskLabel" style="font-weight:bold; color:#F59E0B;">20%</span>
-                                        </div>
-                                        <input type="range" id="hapRiskSlider" min="0" max="100" value="20" style="width:100%;" oninput="updateRiskSettings()">
-                                    </div>
-                                    <div>
-                                        <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.85rem;">
-                                            <span>학교적응 하위</span>
-                                            <span id="adaptRiskLabel" style="font-weight:bold; color:#10B981;">20%</span>
-                                        </div>
-                                        <input type="range" id="adaptRiskSlider" min="0" max="100" value="20" style="width:100%;" oninput="updateRiskSettings()">
-                                    </div>
-                                    <p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px; line-height:1.4;">* 슬라이더를 조절하여 두 영역 중 하나라도 설정한 비율 이하에 속하는 학생을 조회합니다.</p>
-                                </div>
-
-                                <div id="riskDropdown" class="risk-dropdown" style="display:none; position:absolute; right:0; top:40px; width:300px; background:white; border:1px solid #ddd; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-radius:8px; z-index:100; max-height:400px; overflow-y:auto; padding:10px;">
-                                    <!-- JS Injection -->
-                                </div>
-                            </div>
                         </div>
-                        <div style="display:flex; gap:10px;">
-                            <button class="btn btn-primary btn-sm" onclick="openStudentConsultingChat()" style="background-color:#FDE047; color:#854D0E; border-color:#FACC15;">
-                                <i class="fa-solid fa-comments"></i> AI 컨설턴트(API)
+                        <div class="risk-nav-wrapper" style="position:relative; display:flex; gap:5px; align-items:center;">
+                            <button id="btnRiskNav" class="btn btn-outline-danger btn-sm" onclick="toggleRiskDropdown()">
+                                <i class="fa-solid fa-triangle-exclamation"></i> 요주의 학생목록 <i class="fa-solid fa-caret-down"></i>
                             </button>
-                            <button class="btn btn-outline-secondary btn-sm" onclick="startGeminiConsulting()">
-                                <i class="fa-solid fa-window-restore"></i> AI 컨설턴트(외부WEB)
-                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="toggleRiskSettingsModal()" style="padding: 4px 8px;" title="요주의 학생 조회 기준 설정"><i class="fa-solid fa-gear"></i></button>
+
+                            <div id="riskDropdown" class="risk-dropdown" style="display:none; position:absolute; right:0; top:40px; width:300px; background:white; border:1px solid #ddd; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-radius:8px; z-index:100; max-height:400px; overflow-y:auto; padding:10px;">
+                                <!-- JS Injection -->
+                            </div>
                         </div>
                     </div>
                 </header>
 
                 <div id="personalHomeContainer" class="table-container" style="display: none; margin-top: 20px; overflow-x: auto; background: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-                    <h3 style="margin-bottom: 15px; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-users"></i> 학급 학생 주요 정보 요약</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                        <h3 style="margin: 0; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-users"></i> 학급 학생 주요 정보 요약</h3>
+                        <button class="btn btn-outline-success btn-sm" onclick="openTeacherRegistrationModal()"><i class="fa-solid fa-chalkboard-user"></i> 교사 등록</button>
+                    </div>
                     <table id="personalHomeTable" style="min-width: 900px; font-size: 0.9rem;">
                         <thead style="background-color: #F8FAFC;">
                             <tr>
-                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(0)">선택 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap; text-align: center;"><input type="checkbox" id="selectAllStudents" onclick="toggleAllStudentsSelection(this)" style="cursor: pointer;">선택해제</th>
                                 <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(1)">연번 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
                                 <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(2)">학년 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
                                 <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(3)">반 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
@@ -282,6 +251,7 @@
                                 <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(8)">강점영역(상위2개) <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
                                 <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(9)">행복 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
                                 <th style="cursor: pointer; padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;" onclick="sortTable(10)">학교적응 <i class="fa-solid fa-sort" style="color:var(--text-muted); font-size:0.8em;"></i></th>
+                                <th style="padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;">개별 컨설팅(API)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -436,6 +406,13 @@
                         </div>
                     </div>
                 </div>
+                
+                <div id="studentChatReportContainer" style="display:none; margin-top:20px; background:#fff; padding:20px; border-radius:12px; border:1px solid #ddd; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
+                    <h3 style="margin-bottom:15px; color:var(--primary-color); border-bottom:2px solid #eee; padding-bottom:10px;"><i class="fa-solid fa-clock-rotate-left"></i> 자동 저장된 컨설팅 대화 기록 (API)</h3>
+                    <div id="studentChatReportBody" style="font-size:0.95rem; line-height:1.6; color:var(--text-main); fill:none; white-space: pre-wrap;">
+                        <!-- JS Injection -->
+                    </div>
+                </div>
             </section>
 
             <!-- 6. AI 행동발달 생성기 -->
@@ -542,6 +519,22 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div style="margin-top:15px; border-bottom:1px dashed var(--border-color); padding-bottom:15px; margin-bottom:15px;">
+                        <label style="display:block; font-weight:600; margin-bottom:5px;">기본 명령어 설정 (수정 가능)</label>
+                        <textarea id="aiBasePromptSetup" class="form-select"
+                            style="width:100%; margin-top:0; height:180px; resize:vertical; font-size:0.95rem; padding:10px; line-height: 1.5;">당신은 15년 차 경력의 통찰력 있고 따뜻한 초등학교 교사입니다. 제공된 학생의 다면적 키워드 데이터를 바탕으로 생활기록부에 등재될 고품질의 '행동특성 및 종합의견'을 작성해 주세요.
+
+[필수 제한 사항: 절대 포함 금지]
+1. 시기 정보 금지: '1학기', '2학기', '1년 동안' 등의 시기 관련 단어를 절대 사용하지 않습니다.
+2. 주어 생략: '000 학생은', '이 학생은', 'ㅇㅇㅇ은' 등 학생을 지칭하는 주어나 이름표시(메타정보)로 문장을 시작하지 않습니다. (바로 특성이나 행동으로 문장을 시작할 것. 예: "매사 긍정적인 태도로..." O / "000 학생은 매사..." X)
+
+[작성 조건]
+1. 분량 및 구조: 학생당 3~4개의 문장으로 구성하며, 문장 간의 흐름이 자연스럽게 이어지도록 작성합니다.
+2. 종결 어미: 모든 문장은 반드시 생활기록부 표준 규격인 명사형 종결어미(~함, ~임, ~돋보임 등)로 끝맺습니다.
+3. 강점의 유기적 조합: 입력된 [강점 키워드] (행복 6요소, MBTI, 다중지능, 학교 적응력 등)를 단순 나열하지 않고, 실제 학교 생활의 구체적인 모습이 연상되도록 맥락을 부여하여 서술합니다.
+4. 보완점의 긍정적 순화: [보완점 키워드]가 주어질 경우, 직접적인 단점으로 지적하지 않고 '앞으로의 발전 가능성'이나 '현재 긍정적으로 성장해 나가는 모습'으로 순화하여 따뜻하게 표현합니다.
+5. 변별력 및 다양성 확보: 기계적이고 반복적인 문장 패턴을 철저히 배제합니다. 고학년(6학년)의 발달 수준에 맞는 다채롭고 성숙한 어휘를 사용해 주세요.</textarea>
                     </div>
                     <div style="margin-top:15px;">
                         <label style="display:block; font-weight:600; margin-bottom:5px;">사용자 개별 요구사항 (선택적 추가
@@ -673,7 +666,7 @@
             <!-- MI Full Screen Modal -->
             <div id="miGroupsModal" class="mi-fullscreen-modal" style="display:none;">
                 <div class="mi-modal-header">
-                    <h2><i class="fa-solid fa-brain"></i> 다중지능 영역별 우수 학생 분포</h2>
+                    <h2><i class="fa-solid fa-brain"></i> 다중지능 영역별 우수 학생 분포 <span style="font-size: 1rem; font-weight: normal; margin-left:10px;">(※ 각 학생별 상위 2개 영역만 표기됨)</span></h2>
                     <button class="mi-modal-close" onclick="closeMiGroupsModal()">&times;</button>
                 </div>
                 <div class="mi-grid" id="miGroupsGrid">
@@ -710,8 +703,20 @@
                                     class="fa-solid fa-triangle-exclamation"></i> 입력해주신 API 키는 선생님의 브라우저 메모리에만 일시적으로
                                 유지되며, 서버나 그 어디에도 결코 저장되지 않습니다. (새로고침 시 초기화됨)</span>
                         </p>
-                        <input type="password" id="globalApiKeyInput" class="form-select"
-                            style="width: 100%; margin-top:0;" placeholder="발급받은 Gemini API 키 붙여넣기...">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display:block; font-weight:600; margin-bottom:8px; font-size:0.95rem;"><i class="fa-solid fa-robot"></i> 사용할 AI 모델 선택</label>
+                            <select id="geminiModelSelect" class="form-select" style="width:100%; margin-top:0; padding:10px;">
+                                <option value="gemini-2.0-flash">Gemini 2.0 Flash (최신 모델: 빠르고 똑똑함)</option>
+                                <option value="gemini-1.5-flash">Gemini 1.5 Flash (권장: 빠르고 가벼움)</option>
+                                <option value="gemini-1.5-pro">Gemini 1.5 Pro (성능 위주: 복잡한 분석에 유리)</option>
+                                <option value="gemini-2.5-flash">Gemini 2.5 Flash (최신)</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; font-weight:600; margin-bottom:8px; font-size:0.95rem;"><i class="fa-solid fa-key"></i> API Key 입력</label>
+                            <input type="password" id="globalApiKeyInput" class="form-select"
+                                style="width: 100%; margin-top:0; padding:10px;" placeholder="발급받은 Gemini API 키 붙여넣기...">
+                        </div>
                     </div>
                     <div class="modal-footer"
                         style="text-align: right; margin-top: 25px; display:flex; justify-content: space-between;">
@@ -786,8 +791,63 @@
                     </div>
                 </div>
             </div>
-
         </main>
+    </div>
+
+    <!-- Centered Modal Section -->
+    <div id="modalContainer">
+        <!-- 요주의 학생 설정 팝업 -->
+        <div id="riskSettingsModalOverlay" class="modal-overlay" style="display:none; z-index: 10005;">
+            <div class="modal-content" style="max-width: 400px; width: 90%; text-align: left;">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-sliders"></i> 요주의 학생 조회 기준 설정</h2>
+                    <button class="modal-close" onclick="closeRiskSettingsModal()">&times;</button>
+                </div>
+                <div style="padding: 10px 0;">
+                    <div style="margin-bottom:20px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:1rem;">
+                            <span>행복도 하위</span>
+                            <span id="hapRiskLabel" style="font-weight:bold; color:#F59E0B; font-size: 1.2rem;">20%</span>
+                        </div>
+                        <input type="range" id="hapRiskSlider" min="0" max="100" value="20" style="width:100%;" oninput="updateRiskSettings()">
+                    </div>
+                    <div style="margin-bottom:20px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:1rem;">
+                            <span>학교적응 하위</span>
+                            <span id="adaptRiskLabel" style="font-weight:bold; color:#10B981; font-size: 1.2rem;">20%</span>
+                        </div>
+                        <input type="range" id="adaptRiskSlider" min="0" max="100" value="20" style="width:100%;" oninput="updateRiskSettings()">
+                    </div>
+                    <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.4; background:#f9fafb; padding:10px; border-radius:6px; border:1px solid #e5e7eb;">
+                        * 슬라이더를 조절하여 두 영역 중 하나라도 설정한 비율 이하에 속하는 학생을 조회합니다. 기준은 개인/학급 컨설팅 뷰 양쪽에 모두 실시간으로 동기화됩니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 교사 등록 팝업 모달 -->
+        <div id="teacherRegistrationModal" class="modal-overlay" style="display:none; z-index: 10006;">
+            <div class="modal-content" style="max-width: 450px; width: 90%; text-align: left;">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-chalkboard-user"></i> 교사 데이터 등록</h2>
+                    <button class="modal-close" onclick="closeTeacherRegistrationModal()">&times;</button>
+                </div>
+                <div style="padding: 10px 0;">
+                    <p style="font-size:0.95rem; color:var(--text-main); margin-bottom:15px; line-height:1.5;">
+                        <strong style="color:var(--primary-color);">안내문</strong><br>
+                        교사 본인이 설문에 참여한 후 교사 본인의 데이터를 등록하세요.<br>
+                        교사와 학생의 궁합 등 교사 데이터를 고려한 맞춤형 컨설팅 및 AI 대화가 가능해집니다.
+                    </p>
+                    <label for="teacherDataSelect" style="display:block; margin-bottom: 5px; font-weight:bold;">등록할 교사(응답자) 선택:</label>
+                    <select id="teacherDataSelect" class="form-select" style="margin-top:0; margin-bottom:15px;">
+                        <option value="">-- 응답자 목록에서 선택 --</option>
+                    </select>
+                    <div style="text-align:right;">
+                        <button class="btn btn-primary" onclick="confirmTeacherRegistration()">교사로 등록 및 적용</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Script -->
