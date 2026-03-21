@@ -159,26 +159,7 @@
                     style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
                     <div>
                         <h1>학급 전체 컨설팅</h1>
-                        <p>우리 반 전체 학생들의 경향성과 항목별 평균을 확인하실 수 있습니다.</p>
-                        <button class="btn btn-outline-tertiary btn-sm" onclick="window.print()"
-                            style="margin-top:10px;"><i class="fa-solid fa-file-pdf"></i> 학급 컨설팅 리포트 PDF 저장</button>
-                    </div>
-                    <div style="display:flex; gap:10px;">
-                        <button class="btn btn-primary" onclick="openClassConsultingChat()"
-                            style="background-color:#FDE047; color:#854D0E; border-color:#FACC15;">
-                            <i class="fa-solid fa-comments"></i> AI 컨설턴트와 상담(자체)
-                        </button>
-                        <button class="btn btn-outline-secondary" onclick="startClassGeminiConsulting()">
-                            <i class="fa-solid fa-window-restore"></i> AI 컨설턴트와 상담(외부)
-                        </button>
-                    </div>
-                </header>
-                <div class="charts-wrap">
-                    <div class="chart-card">
-                        <h3>학급 행복 요소 평균 (방사형)</h3>
-                        <div class="canvas-wrapper"><canvas id="classRadarChart"></canvas></div>
-                    </div>
-                    <div class="chart-card">
+                        <p>우리 반 전체 학생들의 경향성과 항목별 �                    <div class="chart-card">
                         <h3>학교생활 적응력 분포 (막대형)</h3>
                         <div class="canvas-wrapper"><canvas id="classBarChart"></canvas></div>
                     </div>
@@ -201,6 +182,19 @@
             <!-- 5. 개인별 맞춤 컨설팅 -->
             <section id="personal-stats" class="page-section">
                 <header
+                    style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <h1>개인별 맞춤 컨설팅</h1>
+                        <p>분석할 학생을 아래 목록에서 선택해주세요.</p>
+                        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+                            <button id="personalHomeBtn" class="btn btn-outline-primary"
+                                style="padding: 8px 15px; margin-top: 0; background: #fff;" onclick="showPersonalHome()"
+                                title="학급 전체 요약(첫 화면)으로 이동"><i class="fa-solid fa-house"></i></button>
+                            <select id="studentSelect" class="form-select" style="margin-top:0;">
+                                <option value="">-- 학생을 선택하세요 --</option>
+                            </select>
+                        </div>
+                    </div>   <header
                     style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
                     <div>
                         <h1>개인별 맞춤 컨설팅</h1>
@@ -297,6 +291,13 @@
                                 <th
                                     style="padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap;">
                                     개별 컨설팅(API)</th>
+                                <th
+                                    style="padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap; text-align: center;">
+                                    리포트/ 일괄
+                                    <button class="btn btn-tertiary btn-sm" onclick="downloadAllPersonalReports()" title="해당학급 모든학생 리포트 일괄 다운로드" style="padding: 2px 8px; font-size: 0.75rem; margin-left: 5px; background-color:#F4C476; color:white; border:none;">
+                                        <i class="fa-solid fa-file-pdf"></i> 일괄
+                                    </button>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
