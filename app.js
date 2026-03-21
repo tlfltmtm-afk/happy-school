@@ -169,7 +169,7 @@ window.populatePersonalHome = function() {
     if(!tbody) return;
     
     if(parsedData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" class="empty-state">학생 데이터가 없습니다. 먼저 데이터를 파싱해주세요.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" class="empty-state">학생 데이터가 없습니다. 먼저 데이터를 파싱해주세요.</td></tr>';
         return;
     }
 
@@ -267,6 +267,7 @@ window.populatePersonalHome = function() {
         const tr = document.createElement('tr');
         if (trStyle) tr.style = trStyle;
         const chatBtnHtml = `<button class="btn btn-warning btn-sm" onclick="openAndStartPersonalChat(${index})" style="padding: 2px 8px; font-size: 0.75rem; background-color:#FDE047; color:#854D0E; border:1px solid #FACC15;"><i class="fa-regular fa-comments"></i> 챗봇 열기</button>`;
+        const pdfBtnHtml = `<button class="btn btn-outline-tertiary btn-sm" onclick="downloadPersonalReport(${index})" style="padding: 2px 8px; font-size: 0.75rem;" title="현재 학생 리포트 저장"><i class="fa-solid fa-file-pdf"></i></button>`;
         
         tr.innerHTML = `
             <td style="padding: 8px;">${actionHtml}</td>
@@ -281,6 +282,7 @@ window.populatePersonalHome = function() {
             <td style="padding: 8px;" data-score="${hapAvg}">${hapStars}</td>
             <td style="padding: 8px;" data-score="${adaptAvg}">${adaptStars}</td>
             <td style="padding: 8px; text-align:center;">${chatBtnHtml}</td>
+            <td style="padding: 8px; text-align:center;">${pdfBtnHtml}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -577,7 +579,7 @@ window.submitCustomKeyword = function(index, type) {
 };
 
 // Generate Manual Prompt Text
-window.generateManualPromptText = function(index) {
+window.generateManualPromptText = function(index, includeBasePrompt = true) {
     const row = parsedData[index];
     const name = getStudentName(row);
     const baseMeta = getStudentMeta(row);
@@ -603,7 +605,7 @@ window.generateManualPromptText = function(index) {
 
     const basePrompt = document.getElementById('aiBasePromptSetup')?.value.trim() || "당신은 15년 차 경력의 통찰력 있고 따뜻한 초등학교 교사입니다. 제공된 학생의 다면적 키워드 데이터를 바탕으로 생활기록부에 등재될 고품질의 '행동특성 및 종합의견'을 작성해 주세요.";
     
-    let prompt = `${basePrompt}\n\n`;
+    let prompt = includeBasePrompt ? `${basePrompt}\n\n` : "";
     prompt += `[행동발달 작성 대상 입력 데이터]\n`;
     prompt += `- 대상 정보: ${metaStr}소속 ${name} 학생\n`;
     
@@ -698,10 +700,14 @@ document.getElementById('generateAllBtn').addEventListener('click', () => {
 
 document.getElementById('copyAllPromptBtn').addEventListener('click', () => {
     if(parsedData.length === 0) return alert("데이터가 없습니다.");
-    let text = "";
+    
+    const basePrompt = document.getElementById('aiBasePromptSetup')?.value.trim() || "당신은 15년 차 경력의 통찰력 있고 따뜻한 초등학교 교사입니다. 제공된 학생의 다면적 키워드 데이터를 바탕으로 생활기록부에 등재될 고품질의 '행동특성 및 종합의견'을 작성해 주세요.";
+    
+    let text = `${basePrompt}\n\n========================================\n[전체 학생 데이터 통합 시작]\n========================================\n\n`;
+    
     parsedData.forEach((row, index) => {
-        const prompt = generateManualPromptText(index);
-        text += `[학생번호: ${index + 1}번] ================================\n${prompt}\n\n`;
+        const prompt = generateManualPromptText(index, false); // Skip base prompt for each student
+        text += `[학생번호: ${index + 1}번] --------------------------------\n${prompt}\n\n`;
     });
     openAiSiteModal(text, "전체 학생에 대한 행발생성 프롬프트 정보가 한 번에 복사되었습니다!\n사이트로 이동하여 복사(Ctrl+V)하여 생성을 이어가세요.");
 });
@@ -2448,6 +2454,20 @@ window.downloadAllPersonalReports = function() {
     };
 
     renderAll();
+};
+
+window.downloadPersonalReport = function(index) {
+    // Select the student
+    const selector = document.getElementById('studentSelect');
+    if(selector) {
+        selector.value = index;
+        selector.dispatchEvent(new Event('change'));
+    }
+    
+    // Give charts time to render
+    setTimeout(() => {
+        window.print();
+    }, 500);
 };
 
 // Data Backup (Export/Download JSON)
