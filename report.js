@@ -88,12 +88,94 @@ window.nextStudent = function() {
     }
 };
 
-// Extractor identical to app.js fallback (extracts first digit found)
-function extractScore(str) {
-    if(!str) return null;
-    const m = String(str).match(/\d/);
-    if(m) return parseInt(m[0], 10);
+// Robust score extraction matching app.js
+function extractScore(valStr) {
+    if(!valStr) return null;
+    const str = String(valStr).trim();
+    const digitMatch = str.match(/\d+/);
+    if(digitMatch && parseInt(digitMatch[0], 10) <= 5 && parseInt(digitMatch[0], 10) >= 1) {
+        return parseInt(digitMatch[0], 10);
+    }
+    
+    if(str.includes("전혀 그렇지 않다") || str.includes("매우 그렇지 않다") || str.includes("매우 부족")) return 1;
+    if(str.includes("그렇지 않다") || str.includes("부족")) return 2;
+    if(str.includes("보통이다") || str.includes("보통")) return 3;
+    if(str.includes("매우 그렇다") || str.includes("매우 우수")) return 5;
+    if(str.includes("그렇다") || str.includes("우수")) return 4;
+
     return null;
+}
+
+function getRandomItems(arr, count) {
+    const shuffled = [...arr].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+}
+
+function transformWeakness(weakness) {
+    if(!weakness) return "";
+    if(weakness.includes("필요") || weakness.includes("요망") || weakness.includes("바람")) {
+        return weakness; 
+    }
+    return weakness;
+}
+
+// Extract keywords matching app.js logic
+function extractKeywordsForStudent(row, version, dsKeys, OFFSETS) {
+    let strengthsPool = [];
+    let weaknessesPool = [];
+
+    if(typeof MAPPING_DATA !== 'undefined' && typeof KEYWORD_BANK !== 'undefined') {
+        Object.keys(MAPPING_DATA).forEach(category => {
+            if(category === 'MBTI') return;
+            
+            Object.keys(MAPPING_DATA[category]).forEach(sub => {
+                const qNums = MAPPING_DATA[category][sub][version];
+                if(!qNums) return;
+                
+                let totalScore = 0;
+                let count = 0;
+                qNums.forEach(qNum => {
+                    const globalIdx = OFFSETS[version][category] + qNum - 1;
+                    if(globalIdx < dsKeys.length) {
+                        const valStr = row[dsKeys[globalIdx]];
+                        if(valStr) {
+                            const score = extractScore(valStr);
+                            if(score !== null) {
+                                totalScore += score;
+                                count++;
+                            }
+                        }
+                    }
+                });
+                
+                if(count > 0) {
+                    const avg = totalScore / count;
+                    const banks = KEYWORD_BANK[category][sub];
+                    if(!banks) return;
+                    
+                    if(avg >= 4.0) {
+                        if(banks["강점"]) strengthsPool = strengthsPool.concat(getRandomItems(banks["강점"], 3));
+                    } else if(avg <= 2.5) {
+                        if(banks["보완"]) weaknessesPool = weaknessesPool.concat(getRandomItems(banks["보완"], 2));
+                    } else {
+                        if(banks["강점"]) strengthsPool = strengthsPool.concat(getRandomItems(banks["강점"], 1));
+                    }
+                }
+            });
+        });
+    }
+
+    if(strengthsPool.length < 10) {
+        strengthsPool = strengthsPool.concat(getRandomItems(allStrengths || [], 15 - strengthsPool.length));
+    }
+    if(weaknessesPool.length === 0) {
+        weaknessesPool = weaknessesPool.concat(getRandomItems(allWeaknesses || [], 3));
+    }
+
+    strengthsPool = [...new Set(strengthsPool)];
+    weaknessesPool = [...new Set(weaknessesPool)];
+
+    return { strengths: strengthsPool, weaknesses: weaknessesPool };
 }
 
 // Generate HTML and Chart configs for a single student
@@ -117,6 +199,18 @@ function buildStudentTemplate(index) {
         v2: { '행복': 0, 'MBTI': 6, '다중지능': 14, '학교적응력': 22 },
         v3: { '행복': 0, 'MBTI': 12, '다중지능': 28, '학교적응력': 44 }
     };
+    
+    // Initialize student data if missing (matching app.js)
+    if(!row._mbti) {
+        const mbtiArr = ["ENTP", "ISFJ", "ENFP", "ISTJ", "ESTP", "INFP", "ESFJ", "INTJ", "ENTJ", "ISFP", "ENFJ", "ISTP", "ESTJ", "INTP", "ESFP", "INFJ"];
+        row._mbti = mbtiArr[Math.floor(Math.random() * mbtiArr.length)];
+    }
+    
+    if(!row._strengths || !row._weaknesses) {
+        const extracted = extractKeywordsForStudent(row, version, dsKeys, OFFSETS);
+        row._strengths = extracted.strengths;
+        row._weaknesses = extracted.weaknesses.map(transformWeakness);
+    }
     
     function getSubCategoryAvg(catName, subName) {
         if(typeof MAPPING_DATA === 'undefined') return 0;
@@ -206,6 +300,7 @@ function buildStudentTemplate(index) {
     const adaptLabels = ['교우관계', '교사관계', '학업태도', '규칙준수'];
     const adaptChartData = adaptLabels.map(l => getSubCategoryAvg('학교적응력', l));
 
+
     // Build Raw Survey Data across multiple Pages (Chunking)
     const validKeys = Object.keys(row).filter(k => !k.startsWith('_') && !/^Col\d*$/i.test(k));
     const PAGE_LIMIT = 26; // 약 26개의 문항이 한 A4 페이지에 적당함
@@ -241,26 +336,33 @@ function buildStudentTemplate(index) {
         <!-- 페이지 1: 요약 및 차트 -->
         <div class="a4-page">
             <div class="report-header">
-                <div class="header-info-box">
-                    <div class="header-title-meta">${meta}</div>
-                    <div class="header-title-name">${name} 학생 리포트</div>
+                <!-- 좌측: 학년반번호이름 / 학생이름 -->
+                <div class="header-column left">
+                    <div class="header-title-meta">${meta} ${name}</div>
+                    <div class="header-title-name">${name} 학생</div>
                 </div>
-                <div class="header-badges">
-                    <div class="badge-item">
-                        <span class="badge-label">행복도</span>
-                        <span style="font-size:1.1rem; color:#f39c12; text-shadow:1px 1px 1px rgba(0,0,0,0.1); font-weight:bold;">${hapStars}</span>
-                    </div>
-                    <div class="badge-item">
-                        <span class="badge-label">학교적응</span>
-                        <span style="font-size:1.1rem; color:#27ae60; text-shadow:1px 1px 1px rgba(0,0,0,0.1); font-weight:bold;">${adaptStars}</span>
-                    </div>
+
+                <!-- 중앙: MBTI / 행복도 -->
+                <div class="header-column center">
                     <div class="badge-item">
                         <span class="badge-label">성향(MBTI)</span>
-                        <span class="badge-value mbti">${mbti}</span>
+                        <div class="badge-value mbti">${mbti}</div>
                     </div>
                     <div class="badge-item">
+                        <span class="badge-label">행복도</span>
+                        <div style="font-size:1.15rem; color:#f39c12; font-weight:bold; text-shadow:1px 1px 1px rgba(0,0,0,0.1);">${hapStars}</div>
+                    </div>
+                </div>
+
+                <!-- 우측: 강점 다중지능 / 학교적응도 -->
+                <div class="header-column right">
+                    <div class="badge-item">
                         <span class="badge-label">강점 다중지능</span>
-                        <span class="badge-value mi">${topMi}</span>
+                        <div class="badge-value mi" style="font-size:0.9rem; padding:4px 10px;">${topMi}</div>
+                    </div>
+                    <div class="badge-item">
+                        <span class="badge-label">학교적응도</span>
+                        <div style="font-size:1.15rem; color:#27ae60; font-weight:bold; text-shadow:1px 1px 1px rgba(0,0,0,0.1);">${adaptStars}</div>
                     </div>
                 </div>
             </div>
