@@ -1399,7 +1399,7 @@ studentSelect.addEventListener('change', (e) => {
         }
     });
 
-    const rowKeys = Object.keys(row).filter(k => !k.startsWith('_'));
+    const rowKeys = Object.keys(row).filter(k => !k.startsWith('_') && !/^Col\d*$/i.test(k));
     const rowValues = Object.values(row);
     // 보통 처음 4개(타임스탬프, 학년, 반, 번호, 이름 등 - 템플릿에 따라 다르나 보통 앞부분)는 메타데이터입니다.
     // 여기서는 항목 헤더에 '1.', '2.' 처럼 숫자로 시작하는 문항을 기준으로 설문 문항을 추출합니다.

@@ -19,17 +19,13 @@
         </div>
         <div class="toolbar-center">
             <label for="studentSelector" style="color:white; font-size:14px; margin-right:8px;">학생 이동:</label>
-            <select id="studentSelector" onchange="jumpToStudent(this.value)">
+            <select id="studentSelector" onchange="jumpToStudent(this.value)" style="margin-right:15px;">
                 <option value="">불러오는 중...</option>
             </select>
 
-            <label for="viewMode" style="color:white; font-size:14px; margin-left:20px; margin-right:8px;">보기:</label>
-            <select id="viewMode" onchange="changeViewMode(this.value)">
-                <option value="1">1쪽</option>
-                <option value="2">2쪽</option>
-                <option value="3">3쪽</option>
-                <option value="4">4쪽</option>
-            </select>
+            <button class="btn btn-outline-light btn-sm" onclick="renderAllStudents()" style="background:#5f6368; color:white; border:1px solid white; padding:5px 10px; border-radius:4px; font-size:13px;" title="모든 학생의 리포트를 한 번에 펼쳐보고 인쇄할 수 있습니다.">
+                <i class="fa-solid fa-layer-group"></i> 모든 학생 전체 보기
+            </button>
 
             <div style="display:flex; align-items:center; margin-left:20px; gap:5px;">
                 <button class="btn-icon" onclick="zoomOut()" title="축소"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
@@ -38,7 +34,7 @@
             </div>
         </div>
         <div class="toolbar-right">
-            <button class="btn" onclick="window.print()" title="현재 학생의 리포트(2장)를 인쇄하거나 PDF로 저장합니다.">
+            <button class="btn" onclick="window.print()" title="현재 펼쳐진 리포트를 인쇄하거나 PDF로 저장합니다.">
                 <i class="fa-solid fa-print"></i> 인쇄 및 PDF 저장
             </button>
         </div>

@@ -48,13 +48,7 @@ function populateSelector() {
     });
 }
 
-let viewCols = 1;
 let currentZoom = 1.0;
-
-window.changeViewMode = function(cols) {
-    viewCols = parseInt(cols, 10);
-    document.getElementById('documentContainer').style.setProperty('--cols', viewCols);
-};
 
 window.zoomIn = function() {
     if(currentZoom < 2.5) currentZoom += 0.1;
@@ -94,25 +88,19 @@ window.nextStudent = function() {
     }
 };
 
-// Extractor identical to app.js
+// Extractor identical to app.js fallback (extracts first digit found)
 function extractScore(str) {
     if(!str) return null;
-    const m = str.toString().match(/^(\d)/);
-    if(m) return parseInt(m[1]);
+    const m = String(str).match(/\d/);
+    if(m) return parseInt(m[0], 10);
     return null;
 }
 
-// Generate UI logic
-function renderStudentPage(index) {
+// Generate HTML and Chart configs for a single student
+function buildStudentTemplate(index) {
     const row = parsedData[index];
     const name = getStudentName(row);
     const meta = getStudentMeta(row);
-    
-    document.getElementById('studentSelector').value = index;
-    document.getElementById('pageIndicator').innerText = `학생 ${index + 1} / ${parsedData.length}`;
-    document.getElementById('bottomIndicator').innerText = index + 1;
-    document.getElementById('btnPrev').disabled = (index === 0);
-    document.getElementById('btnNext').disabled = (index === parsedData.length - 1);
     
     // Calculate missing attributes via app.js logic
     let studentGradeStr = String(row['학년'] || row['학년 반 번호'] || Object.values(row)[0] || "O");
@@ -210,32 +198,46 @@ function renderStudentPage(index) {
     miScores.sort((a,b) => b.score - a.score);
     const topMi = miScores.length > 0 ? miScores.slice(0, 2).map(m => m.name).join(', ') : '부분 누락';
 
-    // Build Page 1
+    // Build Page 1 Labels and Data
     const hapLabels = ['긍정성', '정서조절', '안정감', '관계성', '유능감', '자율성'];
     const hapData = hapLabels.map(l => getSubCategoryAvg('행복', l));
-    
     const miLabels = ['언어', '논리수학', '공간', '신체운동', '음악', '대인관계', '자기성찰', '자연친화'];
     const miChartData = miLabels.map(l => getSubCategoryAvg('다중지능', l));
-    
     const adaptLabels = ['교우관계', '교사관계', '학업태도', '규칙준수'];
     const adaptChartData = adaptLabels.map(l => getSubCategoryAvg('학교적응력', l));
 
-    // Build Raw Survey Data for Page 2
-    let allHtml = '<table style="width:100%; border-collapse: collapse; font-size: 0.85rem; background:white;">';
-    allHtml += '<thead><tr><th style="padding:8px; border-bottom:2px solid #2c3e50; text-align:left; width:70%;">설문 문항</th><th style="padding:8px; border-bottom:2px solid #2c3e50; text-align:left;">학생 응답</th></tr></thead><tbody>';
-    
-    const rowKeys = Object.keys(row).filter(k => !k.startsWith('_'));
-    rowKeys.forEach(key => {
-        allHtml += `<tr>
-            <td style="padding:8px; border-bottom:1px solid #eee; font-weight:500;">${key}</td>
-            <td style="padding:8px; border-bottom:1px solid #eee; color: #2980b9; font-weight:bold;">${row[key]}</td>
-        </tr>`;
-    });
-    allHtml += '</tbody></table>';
+    // Build Raw Survey Data across multiple Pages (Chunking)
+    const validKeys = Object.keys(row).filter(k => !k.startsWith('_') && !/^Col\d*$/i.test(k));
+    const PAGE_LIMIT = 26; // 약 26개의 문항이 한 A4 페이지에 적당함
+    let surveyPagesHtml = '';
 
-    // Render HTML Container
-    const container = document.getElementById('documentContainer');
-    container.innerHTML = `
+    for (let i = 0; i < validKeys.length; i += PAGE_LIMIT) {
+        let chunkKeys = validKeys.slice(i, i + PAGE_LIMIT);
+        
+        let chunkHtml = '<table style="width:100%; border-collapse: collapse; font-size: 0.85rem; background:white;">';
+        chunkHtml += '<thead><tr><th style="padding:8px; border-bottom:2px solid #2c3e50; text-align:left; width:70%;">설문 문항</th><th style="padding:8px; border-bottom:2px solid #2c3e50; text-align:left;">학생 응답</th></tr></thead><tbody>';
+        
+        chunkKeys.forEach(key => {
+            let val = row[key] !== undefined && row[key] !== null ? row[key] : '';
+            chunkHtml += `<tr>
+                <td style="padding:8px; border-bottom:1px solid #eee; font-weight:500;">${key}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color: #2980b9; font-weight:bold;">${val}</td>
+            </tr>`;
+        });
+        chunkHtml += '</tbody></table>';
+        
+        let pageTitle = i === 0 ? `<div class="raw-data-title">${name} 학생 설문 응답 원본</div>` : `<div class="raw-data-title" style="border-bottom:none; margin-bottom:10px;">${name} 학생 설문 응답 원본 (계속)</div>`;
+        
+        surveyPagesHtml += `
+        <div class="a4-page" style="display:flex; flex-direction:column;">
+            ${pageTitle}
+            <div class="report-raw-data" style="flex:1;">
+                ${chunkHtml}
+            </div>
+        </div>`;
+    }
+
+    const html = `
         <!-- 페이지 1: 요약 및 차트 -->
         <div class="a4-page">
             <div class="report-header">
@@ -265,83 +267,139 @@ function renderStudentPage(index) {
             
             <div class="report-charts-grid">
                 <div class="report-chart-card">
-                    <h3>행복 요소 평균 프로마일 (방사형)</h3>
-                    <div class="canvas-wrapper"><canvas id="reportHapChart"></canvas></div>
+                    <h3>행복 요소 평균 프로필 (방사형)</h3>
+                    <div class="canvas-wrapper"><canvas id="reportHapChart_${index}"></canvas></div>
                 </div>
                 <div class="report-chart-card">
                     <h3>다중지능 프로파일 (방사형)</h3>
-                    <div class="canvas-wrapper"><canvas id="reportMiChart"></canvas></div>
+                    <div class="canvas-wrapper"><canvas id="reportMiChart_${index}"></canvas></div>
                 </div>
                 <div class="report-chart-card full-width">
                     <h3>학교생활 적응력 세부 수준 (막대형)</h3>
-                    <div class="canvas-wrapper" style="max-width:none; height:200px;"><canvas id="reportAdaptChart"></canvas></div>
+                    <div class="canvas-wrapper" style="max-width:none; height:200px;"><canvas id="reportAdaptChart_${index}"></canvas></div>
                 </div>
             </div>
             <div style="text-align:right; font-size:0.8rem; color:#95a5a6; margin-top:10px;">본 리포트는 설문조사 기반 분석 자료입니다.</div>
         </div>
 
-        <!-- 페이지 2: 원본 데이터 -->
-        <div class="a4-page" style="display:flex; flex-direction:column;">
-            <div class="raw-data-title">${name} 학생 설문 응답 원본</div>
-            <div class="report-raw-data" style="flex:1;">
-                ${allHtml}
-            </div>
-        </div>
+        <!-- 이어지는 페이지들 (원본 데이터) -->
+        ${surveyPagesHtml}
     `;
 
-    // Render Charts
+    return {
+        html,
+        index,
+        hapLabels, hapData,
+        miLabels, miChartData,
+        adaptLabels, adaptChartData
+    };
+}
+
+function renderStudentCharts(dataInfo) {
+    const idx = dataInfo.index;
+    
+    if(charts[`hap_${idx}`]) charts[`hap_${idx}`].destroy();
+    charts[`hap_${idx}`] = new Chart(document.getElementById(`reportHapChart_${idx}`).getContext('2d'), {
+        type: 'radar',
+        data: {
+            labels: dataInfo.hapLabels,
+            datasets: [{
+                label: '학생 개별 행복 요소',
+                data: dataInfo.hapData,
+                backgroundColor: 'rgba(243, 156, 18, 0.3)',
+                borderColor: '#f39c12',
+                pointBackgroundColor: '#f39c12',
+                borderWidth: 2
+            }]
+        },
+        options: { scales: { r: { min: 0, max: 5, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+    });
+
+    if(charts[`mi_${idx}`]) charts[`mi_${idx}`].destroy();
+    charts[`mi_${idx}`] = new Chart(document.getElementById(`reportMiChart_${idx}`).getContext('2d'), {
+        type: 'radar',
+        data: {
+            labels: dataInfo.miLabels,
+            datasets: [{
+                label: '학생 다중지능',
+                data: dataInfo.miChartData,
+                backgroundColor: 'rgba(41, 128, 185, 0.3)',
+                borderColor: '#2980b9',
+                pointBackgroundColor: '#2980b9',
+                borderWidth: 2
+            }]
+        },
+        options: { scales: { r: { min: 0, max: 5, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+    });
+
+    if(charts[`adapt_${idx}`]) charts[`adapt_${idx}`].destroy();
+    charts[`adapt_${idx}`] = new Chart(document.getElementById(`reportAdaptChart_${idx}`).getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: dataInfo.adaptLabels,
+            datasets: [{
+                label: '적응 요소 분석',
+                data: dataInfo.adaptChartData,
+                backgroundColor: '#2ecc71',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } }, 
+            plugins: { legend: { display: false } } 
+        }
+    });
+}
+
+function renderStudentPage(index) {
+    document.getElementById('studentSelector').value = index;
+    document.getElementById('pageIndicator').innerText = `학생 ${index + 1} / ${parsedData.length}`;
+    document.getElementById('bottomIndicator').innerText = index + 1;
+    document.getElementById('btnPrev').disabled = (index === 0);
+    document.getElementById('btnNext').disabled = (index === parsedData.length - 1);
+    
+    // Clear old charts
+    Object.keys(charts).forEach(k => { if(charts[k]) charts[k].destroy(); });
+    charts = {};
+
+    const dataInfo = buildStudentTemplate(index);
+    const container = document.getElementById('documentContainer');
+    container.innerHTML = dataInfo.html;
+
     setTimeout(() => {
-        if(charts.hap) charts.hap.destroy();
-        charts.hap = new Chart(document.getElementById('reportHapChart').getContext('2d'), {
-            type: 'radar',
-            data: {
-                labels: hapLabels,
-                datasets: [{
-                    label: '학생 개별 행복 요소',
-                    data: hapData,
-                    backgroundColor: 'rgba(243, 156, 18, 0.3)',
-                    borderColor: '#f39c12',
-                    pointBackgroundColor: '#f39c12',
-                    borderWidth: 2
-                }]
-            },
-            options: { scales: { r: { min: 0, max: 5, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
-        });
-
-        if(charts.mi) charts.mi.destroy();
-        charts.mi = new Chart(document.getElementById('reportMiChart').getContext('2d'), {
-            type: 'radar',
-            data: {
-                labels: miLabels,
-                datasets: [{
-                    label: '학생 다중지능',
-                    data: miChartData,
-                    backgroundColor: 'rgba(41, 128, 185, 0.3)',
-                    borderColor: '#2980b9',
-                    pointBackgroundColor: '#2980b9',
-                    borderWidth: 2
-                }]
-            },
-            options: { scales: { r: { min: 0, max: 5, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
-        });
-
-        if(charts.adapt) charts.adapt.destroy();
-        charts.adapt = new Chart(document.getElementById('reportAdaptChart').getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: adaptLabels,
-                datasets: [{
-                    label: '적응 요소 분석',
-                    data: adaptChartData,
-                    backgroundColor: '#2ecc71',
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } }, 
-                plugins: { legend: { display: false } } 
-            }
-        });
+        renderStudentCharts(dataInfo);
     }, 50);
 }
+
+window.renderAllStudents = function() {
+    document.getElementById('studentSelector').value = "";
+    document.getElementById('pageIndicator').innerText = `전체 확인 모드 (${parsedData.length}명)`;
+    document.getElementById('bottomIndicator').innerText = `전체`;
+    document.getElementById('btnPrev').disabled = true;
+    document.getElementById('btnNext').disabled = true;
+
+    // Clear old charts
+    Object.keys(charts).forEach(k => { if(charts[k]) charts[k].destroy(); });
+    charts = {};
+
+    const container = document.getElementById('documentContainer');
+    container.innerHTML = "";
+
+    let allHtml = "";
+    let templatesData = [];
+
+    parsedData.forEach((row, i) => {
+        const dataInfo = buildStudentTemplate(i);
+        allHtml += dataInfo.html;
+        templatesData.push(dataInfo);
+    });
+
+    container.innerHTML = allHtml;
+
+    setTimeout(() => {
+        templatesData.forEach(dataInfo => {
+            renderStudentCharts(dataInfo);
+        });
+    }, 100);
+};
