@@ -33,6 +33,7 @@
                 <li data-target="data-input"><i class="fa-solid fa-upload"></i> 응답 데이터 입력</li>
                 <li data-target="class-stats"><i class="fa-solid fa-chart-pie"></i> 학급 전체 컨설팅</li>
                 <li data-target="personal-stats"><i class="fa-solid fa-user"></i> 개인별 맞춤 컨설팅</li>
+                <li class="external-menu" onclick="window.open('report.html', '_blank')"><i class="fa-regular fa-file-pdf"></i> 개인별 리포트</li>
                 <li data-target="ai-generator"><i class="fa-solid fa-wand-magic-sparkles"></i> AI 행동발달 생성기</li>
             </ul>
             <div
@@ -295,10 +296,7 @@
                                     개별 컨설팅(API)</th>
                                 <th
                                     style="padding: 10px; border-bottom: 2px solid var(--border-color); white-space: nowrap; text-align: center;">
-                                    리포트 <button class="btn btn-outline-primary btn-sm"
-                                        onclick="downloadAllPersonalReports()"
-                                        style="padding: 2px 6px; font-size: 0.75rem; margin-left: 5px;"
-                                        title="해당 학급 모든 학생의 리포트 일괄 저장"><i class="fa-solid fa-file-pdf"></i> 일괄</button>
+                                    리포트
                                 </th>
                             </tr>
                         </thead>

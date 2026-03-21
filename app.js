@@ -15,6 +15,8 @@ const studentSelect = document.getElementById('studentSelect');
 // Navigation Logic
 menuItems.forEach(item => {
     item.addEventListener('click', () => {
+        if(item.classList.contains('external-menu')) return;
+        
         // Remove active class from all
         menuItems.forEach(i => i.classList.remove('active'));
         pageSections.forEach(s => s.classList.remove('active'));
@@ -101,6 +103,10 @@ parseDataBtn.addEventListener('click', () => {
     populatePersonalHome();
     if(document.getElementById('personal-stats').classList.contains('active')) showPersonalHome();
     populateAiTable();
+    
+    // Save to localStorage for external report page
+    localStorage.setItem('happySchoolData', JSON.stringify(parsedData));
+    
     alert(`성공적으로 ${parsedData.length}명의 데이터를 파싱했습니다.`);
 });
 
@@ -2457,17 +2463,14 @@ window.downloadAllPersonalReports = function() {
 };
 
 window.downloadPersonalReport = function(index) {
-    // Select the student
-    const selector = document.getElementById('studentSelect');
-    if(selector) {
-        selector.value = index;
-        selector.dispatchEvent(new Event('change'));
+    if(parsedData.length === 0) return alert("데이터가 없습니다.");
+    // Run class charts calc if missing so we have mbti data ready
+    if(!parsedData[0]._mbti && window.updateClassCharts) {
+        window.updateClassCharts(); 
     }
-    
-    // Give charts time to render
-    setTimeout(() => {
-        window.print();
-    }, 500);
+    localStorage.setItem('happySchoolData', JSON.stringify(parsedData));
+    localStorage.setItem('reportStudentIndex', index);
+    window.open('report.html', '_blank');
 };
 
 // Data Backup (Export/Download JSON)

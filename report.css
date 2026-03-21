@@ -1,0 +1,310 @@
+body {
+    background-color: #525659; /* PDF Viewer 기본 다크 그레이 배경 */
+    margin: 0;
+    padding: 0;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* 툴바 UI (아크로뱃/크롬 PDF 뷰어 느낌) */
+.viewer-toolbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    background-color: #323639;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    box-sizing: border-box;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.toolbar-left, .toolbar-center, .toolbar-right {
+    display: flex;
+    align-items: center;
+}
+
+#pageIndicator {
+    font-size: 14px;
+    font-weight: bold;
+    color: #e8eaed;
+}
+
+select {
+    padding: 5px;
+    border-radius: 4px;
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    background-color: #f1f3f4;
+    cursor: pointer;
+}
+
+button.btn {
+    background-color: #8ab4f8;
+    color: #202124;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+}
+
+button.btn:hover {
+    background-color: #aecbfa;
+}
+
+button.btn-icon {
+    background-color: transparent;
+    color: white;
+    border: 1px solid #7f8c8d;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+button.btn-icon:hover { background-color: #5f6368; }
+
+/* 메인 PDF 뷰어 컨테이너 (스크롤 가능 영역) */
+.document-container {
+    margin-top: 70px; /* 툴바 아래 여백 */
+    margin-bottom: 80px; /* 하단 네비게이션 여백 */
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 1), auto);
+    justify-content: center;
+    gap: 30px; /* 페이지 간 여백 */
+    padding: 0 40px;
+    box-sizing: border-box;
+}
+
+/* A4 규격 페이지: 가로 210mm, 세로 297mm (화면에서는 픽셀 또는 컨테이너 단위) */
+/* 화면 해상도를 고려하여 800px * 1131px 정도로 비율 셋팅 */
+.a4-page {
+    zoom: var(--zoom, 1);
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    padding: 15mm;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    page-break-after: always; /* 인쇄 시 페이지 나눔 유지 */
+}
+
+/* 1장: 상단바 영역 */
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    border: 2px solid #2c3e50;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background: #ecf0f1;
+}
+
+.header-info-box {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.header-title-meta {
+    font-size: 1.1rem;
+    color: #7f8c8d;
+    margin-bottom: 5px;
+}
+
+.header-title-name {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.header-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+
+.badge-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.badge-label {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    margin-bottom: 2px;
+}
+
+.badge-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    background-color: #34495e;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+.badge-value.mbti { background-color: #8e44ad; }
+.badge-value.mi { background-color: #2980b9; }
+
+/* 1장: 차트 영역 */
+.report-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 20px;
+    flex: 1; /* 가득 채우기 */
+}
+
+.report-chart-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.report-chart-card.full-width {
+    grid-column: span 2;
+}
+
+.report-chart-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+    color: #2c3e50;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 8px;
+    width: 100%;
+    text-align: center;
+}
+
+.canvas-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 300px; /* A4 용지에 맞게 차트 조절 */
+    height: 100%;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 2장: 설문 원본 영역 */
+.report-raw-data {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    flex: 1;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    background: #fafafa;
+}
+
+.raw-data-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #2c3e50;
+    border-bottom: 2px solid #2c3e50;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.raw-question {
+    font-weight: bold;
+    color: #34495e;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+.raw-answer {
+    color: #2980b9;
+    padding-left: 10px;
+    border-left: 3px solid #2980b9;
+}
+
+/* 하단 부유 네비게이션 버튼 (화면용) */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background-color: rgba(50, 54, 57, 0.95);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    z-index: 999;
+}
+
+.bottom-nav span {
+    font-size: 14px;
+}
+
+.bottom-nav .nav-btn {
+    background: transparent;
+    color: white;
+    border: 1px solid #5f6368;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.bottom-nav .nav-btn:hover {
+    background: #5f6368;
+}
+
+/* 인쇄용 미디어 쿼리 - A4 2장 규격 최적화 */
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 0; /* 여백을 여기서 0으로 하고 컨테이너 패딩 유지 */
+    }
+
+    body {
+        background: white;
+        margin: 0;
+        padding: 0;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .document-container {
+        margin: 0;
+        gap: 0; /* 떨어짐 방지 */
+    }
+
+    .a4-page {
+        margin: 0;
+        box-shadow: none;
+        border: none;
+        width: 100%;
+        height: 100vh; /* 정확히 1페이지 사이즈 */
+        min-height: auto;
+        padding: 15mm;
+    }
+}
