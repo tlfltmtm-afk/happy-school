@@ -479,33 +479,38 @@ function extractKeywordsForStudent(row) {
     }
 
     // Deduplicate
+    // Deduplicate
     strengthsPool = [...new Set(strengthsPool)];
     weaknessesPool = [...new Set(weaknessesPool)];
 
     return { strengths: strengthsPool, weaknesses: weaknessesPool };
 }
 
-// AI Table Logic
-function populateAiTable() {
-    const tbody = document.querySelector('#aiDataTable tbody');
-    tbody.innerHTML = '';
-    
+window.populateAiTable = function() {
+    const tbody = document.querySelector("#aiDataTable tbody");
+    if(!tbody) return;
+    if(parsedData.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='8' class='empty-state'>데이터가 없습니다. 먼저 분석해주세요.</td></tr>";
+        return;
+    }
+    tbody.innerHTML = "";
+
     parsedData.forEach((row, index) => {
         const name = getStudentName(row);
         const meta = getStudentMeta(row);
 
-        // Dynamically extract based on real survey data instead of completely random
-        if(!row._strengths || !row._weaknesses) {
-            const extracted = extractKeywordsForStudent(row);
-            row._strengths = extracted.strengths;
-            row._weaknesses = extracted.weaknesses.map(transformWeakness);
-            row._aiGenerated = "";
+        // Initialize keyword states if not present
+        if(!row._keywordStates) {
+            row._keywordStates = { strengths: {}, weaknesses: {}, reqs: {} };
+            row._strengths.forEach(s => row._keywordStates.strengths[s] = true);
+            row._weaknesses.forEach(w => row._keywordStates.weaknesses[w] = true);
+            row._reqs.forEach(r => row._keywordStates.reqs[r] = true);
         }
-        row._reqs = row._reqs || [];
 
-        const strengthsHtml = row._strengths.map(s => 
-            `<span class="keyword-badge strength active" onclick="toggleKeyword(this)">${s}</span>`
-        ).join('') + `
+        const strengthsHtml = row._strengths.map(s => {
+            const isActive = row._keywordStates.strengths[s] !== false;
+            return `<span class="keyword-badge strength ${isActive ? 'active' : ''}" onclick="toggleKeywordByEl(${index}, 'strengths', this)">${s}</span>`;
+        }).join('') + `
         <span id="add-btn-strength-${index}" class="keyword-badge add-btn" onclick="showKeywordInput(${index}, 'strength')"><i class="fa-solid fa-plus"></i> 추가</span>
         <span id="input-container-strength-${index}" style="display:none; align-items:center; gap:5px; margin-top:5px; vertical-align:middle;">
             <input type="text" id="input-kw-strength-${index}" class="form-select" style="width:80px; padding:2px 5px; margin:0; font-size:0.85rem;" placeholder="입력">
@@ -513,9 +518,10 @@ function populateAiTable() {
             <button class="btn btn-outline-secondary btn-sm" style="padding:2px 6px; font-size:0.8rem;" onclick="hideKeywordInput(${index}, 'strength')">취소</button>
         </span>`;
         
-        const weaknessesHtml = row._weaknesses.map(w => 
-            `<span class="keyword-badge weakness active" onclick="toggleKeyword(this)">${w}</span>`
-        ).join('') + `
+        const weaknessesHtml = row._weaknesses.map(w => {
+            const isActive = row._keywordStates.weaknesses[w] !== false;
+            return `<span class="keyword-badge weakness ${isActive ? 'active' : ''}" onclick="toggleKeywordByEl(${index}, 'weaknesses', this)">${w}</span>`;
+        }).join('') + `
         <span id="add-btn-weakness-${index}" class="keyword-badge add-btn" onclick="showKeywordInput(${index}, 'weakness')"><i class="fa-solid fa-plus"></i> 추가</span>
         <span id="input-container-weakness-${index}" style="display:none; align-items:center; gap:5px; margin-top:5px; vertical-align:middle;">
             <input type="text" id="input-kw-weakness-${index}" class="form-select" style="width:80px; padding:2px 5px; margin:0; font-size:0.85rem;" placeholder="입력">
@@ -523,9 +529,10 @@ function populateAiTable() {
             <button class="btn btn-outline-secondary btn-sm" style="padding:2px 6px; font-size:0.8rem;" onclick="hideKeywordInput(${index}, 'weakness')">취소</button>
         </span>`;
 
-        const reqsHtml = row._reqs.map(r => 
-            `<span class="keyword-badge req active" onclick="toggleKeyword(this)">${r}</span>`
-        ).join('') + `
+        const reqsHtml = row._reqs.map(r => {
+            const isActive = row._keywordStates.reqs[r] !== false;
+            return `<span class="keyword-badge req ${isActive ? 'active' : ''}" onclick="toggleKeywordByEl(${index}, 'reqs', this)">${r}</span>`;
+        }).join('') + `
         <span id="add-btn-req-${index}" class="keyword-badge add-btn" onclick="showKeywordInput(${index}, 'req')" style="margin-top:5px;"><i class="fa-solid fa-plus"></i> 추가</span>
         <span id="input-container-req-${index}" style="display:none; flex-direction:column; gap:5px; margin-top:5px; width:100%;">
             <input type="text" id="input-kw-req-${index}" class="form-select" style="width:100%; padding:4px; margin:0; font-size:0.85rem;" placeholder="입력">
@@ -553,9 +560,14 @@ function populateAiTable() {
     });
 }
 
-// Toggle Keyword Badge
-window.toggleKeyword = function(el) {
+// Toggle Keyword Badge and Persist State
+window.toggleKeywordByEl = function(studentIndex, type, el) {
+    const row = parsedData[studentIndex];
+    if(!row._keywordStates) row._keywordStates = { strengths: {}, weaknesses: {}, reqs: {} };
+    
     el.classList.toggle('active');
+    const word = el.innerText.trim();
+    row._keywordStates[type][word] = el.classList.contains('active');
 };
 
 // Inline Keyword Input logic
@@ -574,12 +586,25 @@ window.submitCustomKeyword = function(index, type) {
     const word = input.value.trim();
     if(!word) return hideKeywordInput(index, type);
     const row = parsedData[index];
+    if(!row._keywordStates) row._keywordStates = { strengths: {}, weaknesses: {}, reqs: {} };
+    
+    const stateType = type === 'strength' ? 'strengths' : (type === 'weakness' ? 'weaknesses' : 'reqs');
+
     if(type === 'strength') {
-        if(!row._strengths.includes(word)) row._strengths.push(word);
+        if(!row._strengths.includes(word)) {
+            row._strengths.push(word);
+            row._keywordStates.strengths[word] = true;
+        }
     } else if(type === 'weakness') {
-        if(!row._weaknesses.includes(word)) row._weaknesses.push(word);
+        if(!row._weaknesses.includes(word)) {
+            row._weaknesses.push(word);
+            row._keywordStates.weaknesses[word] = true;
+        }
     } else if(type === 'req') {
-        if(!row._reqs.includes(word)) row._reqs.push(word);
+        if(!row._reqs.includes(word)) {
+            row._reqs.push(word);
+            row._keywordStates.reqs[word] = true;
+        }
     }
     populateAiTable();
 };
@@ -2059,31 +2084,52 @@ window.closeChatOverlay = function() {
     document.getElementById('chatOverlay').style.display = 'none';
 };
 
-function addChatBubble(role, text) {
-    const chatBody = document.getElementById('chatBody');
-    const bubble = document.createElement('div');
-    bubble.className = `chat-bubble ${role}-bubble`;
-    // 단순 줄바꿈 및 마크다운 리스트 임시 렌더링
-    let formattedText = text.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
-    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    bubble.innerHTML = formattedText;
-    chatBody.appendChild(bubble);
-    chatBody.scrollTop = chatBody.scrollHeight;
-}
+window.promptRandomKeywords = function(type) {
+    if(parsedData.length === 0) return alert("데이터가 없습니다. 먼저 분석해주세요.");
+    
+    const inputId = type === 'strength' ? 'randomCountStrength' : 'randomCountWeakness';
+    const inputObj = document.getElementById(inputId);
+    if(!inputObj) return;
+    
+    let count = parseInt(inputObj.value, 10);
+    if(isNaN(count) || count < 0) return alert("올바른 숫자를 입력하세요.");
+    
+    let typeClass = type === 'strength' ? 'strength' : 'weakness';
+    const stateType = type === 'strength' ? 'strengths' : 'weaknesses';
+    
+    parsedData.forEach((row, index) => {
+        const badgesContainer = document.getElementById(type === 'strength' ? `ai-strengths-${index}` : `ai-weaknesses-${index}`);
+        if(!badgesContainer) return;
+        if(!row._keywordStates) row._keywordStates = { strengths: {}, weaknesses: {}, reqs: {} };
+
+        const badges = Array.from(badgesContainer.querySelectorAll(`.keyword-badge.${typeClass}`));
+        
+        // Shuffle
+        const shuffled = [...badges].sort(() => 0.5 - Math.random());
+        shuffled.forEach((badge, idx) => {
+            const word = badge.innerText.trim();
+            if(idx < count) {
+                badge.classList.add('active');
+                row._keywordStates[stateType][word] = true;
+            } else {
+                badge.classList.remove('active');
+                row._keywordStates[stateType][word] = false;
+            }
+        });
+    });
+};
 
 window.sendChatMessage = function() {
-    const inputEl = document.getElementById('chatInput');
-    const text = inputEl.value.trim();
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
     if(!text) return;
     
+    input.value = '';
     addChatBubble("user", text);
     chatHistory.push({ role: 'user', text: text });
-    inputEl.value = '';
-    inputEl.style.height = 'auto'; // 리사이즈 리셋
     
-    // Loading indicator
-    const loadingId = "loading-" + Date.now();
     const chatBody = document.getElementById('chatBody');
+    const loadingId = "loading-" + new Date().getTime();
     const bubble = document.createElement('div');
     bubble.className = `chat-bubble bot-bubble`;
     bubble.id = loadingId;
@@ -2282,46 +2328,23 @@ window.toggleSecondSemester = function() {
     }
 };
 
-// Random keywords picker
-window.promptRandomKeywords = function(type) {
-    if(parsedData.length === 0) return alert("데이터가 없습니다. 먼저 분석해주세요.");
-    
-    const inputId = type === 'strength' ? 'randomCountStrength' : 'randomCountWeakness';
-    const inputObj = document.getElementById(inputId);
-    if(!inputObj) return;
-    
-    let count = parseInt(inputObj.value, 10);
-    if(isNaN(count) || count < 0) return alert("올바른 숫자를 입력하세요.");
-    
-    let typeClass = type === 'strength' ? 'strength' : 'weakness';
-    
-    parsedData.forEach((row, index) => {
-        const badgesContainer = document.getElementById(type === 'strength' ? `ai-strengths-${index}` : `ai-weaknesses-${index}`);
-        if(!badgesContainer) return;
-
-        const badges = Array.from(badgesContainer.querySelectorAll(`.keyword-badge.${typeClass}`));
-        
-        // Shuffle
-        const shuffled = [...badges].sort(() => 0.5 - Math.random());
-        shuffled.forEach((badge, idx) => {
-            if(idx < count) {
-                badge.classList.add('active');
-            } else {
-                badge.classList.remove('active');
-            }
-        });
-    });
-};
 
 // Select all keywords
 window.selectAllKeywords = function(type) {
     if(parsedData.length === 0) return;
     let typeClass = type === 'strength' ? 'strength' : 'weakness';
+    const stateType = type === 'strength' ? 'strengths' : 'weaknesses';
     parsedData.forEach((row, index) => {
         const badgesContainer = document.getElementById(type === 'strength' ? `ai-strengths-${index}` : `ai-weaknesses-${index}`);
         if(!badgesContainer) return;
+        if(!row._keywordStates) row._keywordStates = { strengths: {}, weaknesses: {}, reqs: {} };
+
         const badges = Array.from(badgesContainer.querySelectorAll(`.keyword-badge.${typeClass}`));
-        badges.forEach(badge => badge.classList.add('active'));
+        badges.forEach(badge => {
+            const word = badge.innerText.trim();
+            badge.classList.add('active');
+            row._keywordStates[stateType][word] = true;
+        });
     });
 };
 
@@ -2492,6 +2515,20 @@ window.downloadAllPersonalReports = function() {
     renderAll();
 };
 
+window.openReportHtml = function() {
+    if (parsedData.length === 0) {
+        alert("데이터가 없습니다. 먼저 [응답 데이터 입력]에서 데이터를 등록해주세요.");
+        return;
+    }
+    // Run class charts calc if missing so we have mbti data ready
+    if(!parsedData[0]._mbti && window.updateClassCharts) {
+        window.updateClassCharts(); 
+    }
+    localStorage.setItem('happySchoolData', JSON.stringify(parsedData));
+    localStorage.removeItem('reportStudentIndex');
+    window.open('report.html', '_blank');
+};
+
 window.downloadPersonalReport = function(index) {
     if(parsedData.length === 0) return alert("데이터가 없습니다.");
     // Run class charts calc if missing so we have mbti data ready
@@ -2621,4 +2658,5 @@ window.importData = function(event) {
     };
     reader.readAsText(file);
 };
+
 
