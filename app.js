@@ -585,11 +585,11 @@ window.submitCustomKeyword = function(index, type) {
 };
 
 // Generate Manual Prompt Text
-window.generateManualPromptText = function(index, includeBasePrompt = true) {
+window.generateManualPromptText = function (index, includeBasePrompt = true, excludeCommonReqs = false) {
     const row = parsedData[index];
     const name = getStudentName(row);
     const baseMeta = getStudentMeta(row);
-    
+
     // UI values
     const gradeSetup = document.getElementById('aiGradeSetup')?.value.trim();
     const metaStr = gradeSetup ? `${gradeSetup}` : baseMeta;
@@ -599,49 +599,58 @@ window.generateManualPromptText = function(index, includeBasePrompt = true) {
     const term1Length = document.getElementById('aiTerm1Length')?.value || '200';
     const term2Length = document.getElementById('aiTerm2Length')?.value || '200';
     const customReq = document.getElementById('aiCustomRequest')?.value.trim();
-    
+
     // Read active badges from DOM
     const strengthNodes = document.querySelectorAll(`#ai-strengths-${index} .keyword-badge.strength.active`);
     const weaknessNodes = document.querySelectorAll(`#ai-weaknesses-${index} .keyword-badge.weakness.active`);
     const reqNodes = document.querySelectorAll(`#ai-reqs-${index} .keyword-badge.req.active`);
-    
+
     const activeStrengths = Array.from(strengthNodes).map(n => n.innerText);
     const activeWeaknesses = Array.from(weaknessNodes).map(n => n.innerText);
     const activeReqs = Array.from(reqNodes).map(n => n.innerText);
 
     const basePrompt = document.getElementById('aiBasePromptSetup')?.value.trim() || "당신은 15년 차 경력의 통찰력 있고 따뜻한 초등학교 교사입니다. 제공된 학생의 다면적 키워드 데이터를 바탕으로 생활기록부에 등재될 고품질의 '행동특성 및 종합의견'을 작성해 주세요.";
-    
+
     let prompt = includeBasePrompt ? `${basePrompt}\n\n` : "";
-    prompt += `[행동발달 작성 대상 입력 데이터]\n`;
+
+    if (excludeCommonReqs) {
+        prompt += `[데이터: ${index + 1}번 ${name} 학생]\n`;
+    } else {
+        prompt += `[행동발달 작성 대상 입력 데이터]\n`;
+    }
+
     prompt += `- 대상 정보: ${metaStr}소속 ${name} 학생\n`;
-    
+
     if (activeStrengths.length > 0) {
         prompt += `- 강점 키워드: ${activeStrengths.join(', ')}\n`;
     } else {
         prompt += `- 강점 키워드: (특별히 선택된 키워드 없음)\n`;
     }
-    
-    if(activeWeaknesses.length > 0) {
+
+    if (activeWeaknesses.length > 0) {
         prompt += `- 보완점 키워드: ${activeWeaknesses.join(', ')}\n`;
     } else {
         prompt += `- 보완점 키워드: (특별히 선택된 키워드 없음)\n`;
     }
-    
-    prompt += `\n[추가 세부 요구 조건]\n`;
-    
-    if (isSecondTerm) {
-        const lineBreaksCount = parseInt(document.getElementById('aiLineBreaks')?.value || '2', 10);
-        prompt += `- 요구 분량 특이사항: 1학기와 2학기 내용이 포함되도록 생성하되, 1학기/2학기 내용이 중복되지 않도록 분리해서 작성.\n`;
-        prompt += `  * 1학기 내용 분량: 약 ${term1Length}자 내외\n`;
-        prompt += `  * 2학기 내용 분량: 약 ${term2Length}자 내외\n`;
-        prompt += `  * 형태: 1학기 내용 작성 완료 후, 반드시 ${lineBreaksCount}줄 줄바꿈(엔터키 연속 ${lineBreaksCount}번)하여 문단을 명확히 나눈 뒤 다음 행부터 2학기 내용을 이어서 작성할 것.\n`;
-    } else {
-        prompt += `- 분량 요구사항: 총 분량 약 ${basicLength}자 내외로 전체를 묶어서 자연스럽게 구성할 것.\n`;
+
+    if (!excludeCommonReqs) {
+        prompt += `\n[추가 세부 요구 조건]\n`;
+
+        if (isSecondTerm) {
+            const lineBreaksCount = parseInt(document.getElementById('aiLineBreaks')?.value || '2', 10);
+            prompt += `- 요구 분량 특이사항: 1학기와 2학기 내용이 포함되도록 생성하되, 1학기/2학기 내용이 중복되지 않도록 분리해서 작성.\n`;
+            prompt += `  * 1학기 내용 분량: 약 ${term1Length}자 내외\n`;
+            prompt += `  * 2학기 내용 분량: 약 ${term2Length}자 내외\n`;
+            prompt += `  * 형태: 1학기 내용 작성 완료 후, 반드시 ${lineBreaksCount}줄 줄바꿈(엔터키 연속 ${lineBreaksCount}번)하여 문단을 명확히 나눈 뒤 다음 행부터 2학기 내용을 이어서 작성할 것.\n`;
+        } else {
+            prompt += `- 분량 요구사항: 총 분량 약 ${basicLength}자 내외로 전체를 묶어서 자연스럽게 구성할 것.\n`;
+        }
+
+        if (customReq) {
+            prompt += `- 학급 전체 공통 설정 사항: ${customReq}\n`;
+        }
     }
 
-    if (customReq) {
-        prompt += `- 학급 전체 공통 설정 사항: ${customReq}\n`;
-    }
     if (activeReqs.length > 0) {
         prompt += `- 해당 단일 학생 개별 요구사항: ${activeReqs.join(', ')}\n`;
     }
@@ -705,14 +714,35 @@ document.getElementById('generateAllBtn').addEventListener('click', () => {
 });
 
 document.getElementById('copyAllPromptBtn').addEventListener('click', () => {
-    if(parsedData.length === 0) return alert("데이터가 없습니다.");
-    
+    if (parsedData.length === 0) return alert("데이터가 없습니다.");
+
     const basePrompt = document.getElementById('aiBasePromptSetup')?.value.trim() || "당신은 15년 차 경력의 통찰력 있고 따뜻한 초등학교 교사입니다. 제공된 학생의 다면적 키워드 데이터를 바탕으로 생활기록부에 등재될 고품질의 '행동특성 및 종합의견'을 작성해 주세요.";
-    
-    let text = `${basePrompt}\n\n========================================\n[전체 학생 데이터 통합 시작]\n========================================\n\n`;
-    
+
+    // Pre-calculate common requirements for the batch prompt
+    const isSecondTerm = document.getElementById('aiSecondSemesterCheck')?.checked;
+    const customReq = document.getElementById('aiCustomRequest')?.value.trim();
+
+    let commonReqText = "\n[추가 세부 요구 조건 (모든 학생 공통 적용)]\n";
+    if (isSecondTerm) {
+        const term1Length = document.getElementById('aiTerm1Length')?.value || '200';
+        const term2Length = document.getElementById('aiTerm2Length')?.value || '200';
+        const lineBreaksCount = parseInt(document.getElementById('aiLineBreaks')?.value || '2', 10);
+        commonReqText += `- 요구 분량 특이사항: 1학기와 2학기 내용이 포함되도록 생성하되, 1학기/2학기 내용이 중복되지 않도록 분리해서 작성.\n`;
+        commonReqText += `  * 1학기 내용 분량: 약 ${term1Length}자 내외\n`;
+        commonReqText += `  * 2학기 내용 분량: 약 ${term2Length}자 내외\n`;
+        commonReqText += `  * 형태: 1학기 내용 작성 완료 후, 반드시 ${lineBreaksCount}줄 줄바꿈(엔터키 연속 ${lineBreaksCount}번)하여 문단을 명확히 나눈 뒤 다음 행부터 2학기 내용을 이어서 작성할 것.\n`;
+    } else {
+        const basicLength = document.getElementById('aiLengthSetup')?.value || '300';
+        commonReqText += `- 분량 요구사항: 총 분량 약 ${basicLength}자 내외로 전체를 묶어서 자연스럽게 구성할 것.\n`;
+    }
+    if (customReq) {
+        commonReqText += `- 학급 전체 공통 설정 사항: ${customReq}\n`;
+    }
+
+    let text = `${basePrompt}\n${commonReqText}\n\n========================================\n[전체 학생 데이터 통합 시작 - 위 지시사항에 맞춰 각 번호별로 각각 작성]\n========================================\n\n`;
+
     parsedData.forEach((row, index) => {
-        const prompt = generateManualPromptText(index, false); // Skip base prompt for each student
+        const prompt = generateManualPromptText(index, false, true); // Skip base and common reqs
         text += `[학생번호: ${index + 1}번] --------------------------------\n${prompt}\n\n`;
     });
     openAiSiteModal(text, "전체 학생에 대한 행발생성 프롬프트 정보가 한 번에 복사되었습니다!\n사이트로 이동하여 복사(Ctrl+V)하여 생성을 이어가세요.");
