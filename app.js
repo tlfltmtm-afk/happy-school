@@ -502,6 +502,13 @@ window.populateAiTable = function() {
         const name = getStudentName(row);
         const meta = getStudentMeta(row);
 
+        if (!row._strengths || row._strengths.length === 0) {
+            const extracted = extractKeywordsForStudent(row);
+            row._strengths = extracted.strengths;
+            row._weaknesses = extracted.weaknesses.map(transformWeakness);
+            if (!row._reqs) row._reqs = [];
+        }
+
         // Initialize keyword states if not present
         if(!row._keywordStates) {
             row._keywordStates = { strengths: {}, weaknesses: {}, reqs: {} };
