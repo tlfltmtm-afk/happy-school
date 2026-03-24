@@ -76,6 +76,9 @@ parseDataBtn.addEventListener('click', () => {
                 let header = headers[index] ? headers[index] : `Col${index}`;
                 rowObj[header] = col.trim();
             });
+            rowObj._strengths = [];
+            rowObj._weaknesses = [];
+            rowObj._reqs = [];
             parsedData.push(rowObj);
         }
     }
